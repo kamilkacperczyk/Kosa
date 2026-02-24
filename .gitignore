@@ -1,10 +1,46 @@
+# === SRODOWISKO ===
 venv/
+.venv/
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# === SEKRETY / KONFIGURACJA LOKALNA ===
 .env
-# Pliki tymczasowe z diagnostyki i testow
+.env.*
+*.secret
+*.secrets
+config.local.*
+credentials.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.crt
+id_rsa*
+*.keystore
+
+# === IDE / EDYTOR ===
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# === PLIKI TYMCZASOWE Z DIAGNOSTYKI I TESTOW ===
 diagnostyka/
 diagnostyka_gra/
 diagnostyka_live/
 test_kolory/
 *.png
+*.log
+*.tmp
+
+# === SYSTEM ===
+Thumbs.db
+Desktop.ini
+.DS_Store
