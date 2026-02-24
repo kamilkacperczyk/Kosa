@@ -21,16 +21,64 @@ Zabezpieczenia:
 
 import time
 import sys
+import ctypes
 import cv2
+
+
+def _check_admin():
+    """Sprawdza czy bot jest uruchomiony jako Administrator."""
+    if not ctypes.windll.shell32.IsUserAnAdmin():
+        print("BLAD: Bot musi byc uruchomiony jako Administrator!")
+        print("Gra Eryndos dziala z uprawnieniami admina - bez tego")
+        print("klawisze nie dotra do okna gry (Windows UIPI).")
+        print()
+        print("Rozwiazanie:")
+        print("  1. Otworz PowerShell jako Administrator")
+        print("  2. cd do folderu projektu")
+        print("  3. .\\venv\\Scripts\\python.exe -m src.bot --debug")
+        print()
+        print("  Lub uzyj: start_bot.bat")
+        sys.exit(1)
+
 
 from src.screen_capture import ScreenCapture
 from src.fishing_detector import FishingDetector
 from src.input_simulator import InputSimulator
-from src.config import SCAN_INTERVAL, CLICKS_TO_WIN
+from src.config import (
+    SCAN_INTERVAL, CLICKS_TO_WIN,
+    CIRCLE_CENTER_X, CIRCLE_CENTER_Y, CIRCLE_RADIUS, CIRCLE_SAFE_MARGIN,
+)
+import math
 
 
 class KosaBot:
     """Glowny bot automatyzujacy lowienie ryb w Metin2."""
+
+    # Bezpieczny promien — NIGDY nie klikamy dalej niz to od srodka okregu
+    SAFE_RADIUS = CIRCLE_RADIUS - CIRCLE_SAFE_MARGIN  # 64 - 10 = 54 px
+
+    @staticmethod
+    def _clamp_to_circle(x: int, y: int) -> tuple:
+        """
+        Ogranicza pozycje klikniecia do wnetrza okregu z marginesem.
+        Jesli (x,y) jest poza bezpieczna strefa, przesuwa punkt
+        na brzeg bezpiecznego okregu w tym samym kierunku.
+
+        Returns:
+            (x, y) wewnatrz bezpiecznego okregu
+        """
+        dx = x - CIRCLE_CENTER_X
+        dy = y - CIRCLE_CENTER_Y
+        dist = math.sqrt(dx * dx + dy * dy)
+
+        if dist <= KosaBot.SAFE_RADIUS:
+            return (x, y)  # juz w bezpiecznej strefie
+
+        # Przesuń na brzeg bezpiecznego okregu
+        scale = KosaBot.SAFE_RADIUS / dist
+        new_x = int(CIRCLE_CENTER_X + dx * scale)
+        new_y = int(CIRCLE_CENTER_Y + dy * scale)
+        return (new_x, new_y)
 
     def __init__(self, debug: bool = False):
         """
@@ -70,7 +118,11 @@ class KosaBot:
     def play_fishing_round(self) -> bool:
         """
         Gra jedna runde minigry lowienia.
-        Skanuje okrag i klika gdy jest czerwony.
+
+        Strategia: CIAGLE KLIKANIE Z AKTUALNYM SLEDZENIEM
+        - W fazie BIALEJ: sledzimy rybke (background subtraction)
+        - W fazie CZERWONEJ: klikamy CO KLATKE w aktualna pozycje rybki
+        - Background subtraction daje ~1-5px dokladnosc w obu fazach
 
         Returns:
             True jesli runda sie zakonczyla normalnie,
@@ -79,44 +131,73 @@ class KosaBot:
         print("[BOT] === Rozpoczynam runde lowienia ===")
         click_count = 0
         no_circle_count = 0
-        max_no_circle = 30  # jesli przez 30 klatek nie ma okregu = koniec minigry
+        max_no_circle = 15
+        was_active = False
+        last_fish_pos = None
+
+        # Reset trackera rybki na poczatku rundy
+        self.detector.reset_tracking()
+
+        # Fokusuj okno RAZ na poczatku rundy
+        self.input.ensure_focus()
 
         while self.running:
             frame = self.capture.grab_fishing_box()
             color = self.detector.detect_circle_color(frame)
 
+            # Sledzenie rybki — dziala w obu fazach dzieki bg subtraction
+            fish_pos = self.detector.find_fish_position(frame, circle_color=color)
+            if fish_pos is not None:
+                last_fish_pos = fish_pos
+
             if color == "red":
-                print(f"[BOT] CZERWONY OKRAG! Klikam! ({click_count + 1}/{CLICKS_TO_WIN})")
-                self.input.click_fishing_box()
-                click_count += 1
+                was_active = True
                 no_circle_count = 0
 
-                if click_count >= CLICKS_TO_WIN:
-                    print(f"[BOT] WYGRANA! Trafiono {CLICKS_TO_WIN}/{CLICKS_TO_WIN}!")
-                    self.total_catches += 1
-                    return True
+                # Klikaj w kazdej klatce - pozycja jest aktualna!
+                click_target = fish_pos if fish_pos is not None else last_fish_pos
+
+                if click_target is not None:
+                    fx, fy = self._clamp_to_circle(click_target[0], click_target[1])
+                    self.input.click_at_fish_fast(fx, fy)
+                    click_count += 1
+                    if click_count % 5 == 1:  # loguj co 5 klikniec
+                        print(f"[BOT] Klik #{click_count} w ({fx},{fy})"
+                              f" {'[FRESH]' if fish_pos else '[LAST]'}")
 
             elif color == "white":
                 no_circle_count = 0
-                # Okrag bialy = czekamy, nic nie robimy
+                was_active = True
 
             else:
-                # Brak okregu
                 no_circle_count += 1
-                if no_circle_count >= max_no_circle:
-                    print("[BOT] Okrag zniknal - minigra sie skonczyla (timeout lub przegrana).")
+                if was_active and no_circle_count >= max_no_circle:
+                    print(f"[BOT] Okno minigry sie zamknelo. Klikniec: {click_count}")
                     return True
 
             # Debug: podglad na zywo
             if self.debug:
-                if not self._show_debug(frame, color, click_count):
-                    return False  # uzytkownik nacisnal 'q'
+                if not self._show_debug(frame, color, click_count, last_fish_pos):
+                    return False
 
             time.sleep(SCAN_INTERVAL)
 
         return False
 
-    def _show_debug(self, frame, color, click_count) -> bool:
+    def _wait_for_minigame_close(self, timeout: float = 5.0):
+        """
+        Czeka az okno minigry calkowicie zniknie.
+        Upewnia sie ze nie zaczniemy nowej rundy za wczesnie.
+        """
+        start = time.time()
+        while time.time() - start < timeout:
+            frame = self.capture.grab_fishing_box()
+            if not self.detector.is_fishing_active(frame):
+                return  # okno zamkniete
+            time.sleep(0.1)
+        print("[BOT] Timeout czekania na zamkniecie okna minigry.")
+
+    def _show_debug(self, frame, color, click_count, fish_pos=None) -> bool:
         """
         Wyswietla okno debugowe z podgladem.
 
@@ -137,11 +218,28 @@ class KosaBot:
             text = "Brak okregu"
 
         cv2.rectangle(display, (0, 0), (display.shape[1]-1, display.shape[0]-1), border, 3)
+
+        # Rysuj bezpieczny okrag (zielony = strefa klikania)
+        cv2.circle(display, (CIRCLE_CENTER_X, CIRCLE_CENTER_Y), CIRCLE_RADIUS, (128, 128, 128), 1)
+        cv2.circle(display, (CIRCLE_CENTER_X, CIRCLE_CENTER_Y), self.SAFE_RADIUS, (0, 255, 0), 1)
+
         cv2.putText(display, text, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.7, border, 2)
         cv2.putText(display, f"Klikniecia: {click_count}/{CLICKS_TO_WIN}", (10, 50),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
         cv2.putText(display, f"Rundy: {self.total_rounds} | Zlow: {self.total_catches}", (10, 70),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+
+        # Rysuj pozycje rybki
+        if fish_pos is not None:
+            fx, fy = fish_pos
+            cv2.circle(display, (fx, fy), 8, (0, 255, 255), 2)  # zolte kolko
+            cv2.line(display, (fx - 12, fy), (fx + 12, fy), (0, 255, 255), 1)
+            cv2.line(display, (fx, fy - 12), (fx, fy + 12), (0, 255, 255), 1)
+            cv2.putText(display, f"Rybka: ({fx},{fy})", (10, 90),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+        else:
+            cv2.putText(display, "Rybka: ???", (10, 90),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 100, 100), 1)
 
         cv2.imshow("Kosa Bot", display)
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -191,9 +289,11 @@ class KosaBot:
                 if not self.play_fishing_round():
                     break  # przerwano
 
-                # 4. Krotka pauza miedzy rundami
-                print("[BOT] Pauza miedzy rundami...")
-                time.sleep(1.0)
+                # 4. Czekaj az okno minigry sie zamknie + 3s przerwy
+                print("[BOT] Czekam az okno minigry calkowicie zniknie...")
+                self._wait_for_minigame_close()
+                print("[BOT] Pauza 3 sekundy przed nastepna runda...")
+                time.sleep(3.0)
 
         except KeyboardInterrupt:
             print("\n[BOT] Przerwano przez Ctrl+C.")
@@ -214,6 +314,7 @@ class KosaBot:
 # python -m src.bot          -> tryb normalny
 # python -m src.bot --debug  -> tryb z podgladem
 if __name__ == "__main__":
+    _check_admin()
     debug_mode = "--debug" in sys.argv
     bot = KosaBot(debug=debug_mode)
     bot.run()

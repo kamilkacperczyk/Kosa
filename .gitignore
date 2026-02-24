@@ -2,3 +2,9 @@ venv/
 __pycache__/
 *.pyc
 .env
+# Pliki tymczasowe z diagnostyki i testow
+diagnostyka/
+diagnostyka_gra/
+diagnostyka_live/
+test_kolory/
+*.png
