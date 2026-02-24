@@ -1,0 +1,106 @@
+#!/bin/sh
+#
+# Pre-commit hook — blokuje commit jesli wykryje wrazliwe dane.
+# Skanuje staged pliki pod katem hasel, tokenow, kluczy, sekretow.
+#
+# Instalacja (Windows Git Bash):
+#   cp setup_hooks/pre-commit .git/hooks/pre-commit
+#
+# Obejscie (TYLKO po recznej weryfikacji ze to false positive):
+#   git commit --no-verify
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+echo "${GREEN}[pre-commit] Skanuje staged pliki pod katem wrazliwych danych...${NC}"
+
+# Wzorce do wykrycia
+PATTERNS=(
+    # Hasla i tokeny
+    'password\s*[:=]'
+    'passwd\s*[:=]'
+    'token\s*[:=]'
+    'api_key\s*[:=]'
+    'apikey\s*[:=]'
+    'secret\s*[:=]'
+    'auth_token'
+    'access_token'
+    'bearer\s'
+    # Connection strings
+    'mysql://'
+    'postgres://'
+    'mongodb://'
+    'redis://'
+    'amqp://'
+    # Klucze prywatne
+    'BEGIN RSA PRIVATE KEY'
+    'BEGIN DSA PRIVATE KEY'
+    'BEGIN EC PRIVATE KEY'
+    'BEGIN OPENSSH PRIVATE KEY'
+    'BEGIN PGP PRIVATE KEY'
+    'BEGIN PRIVATE KEY'
+    # AWS
+    'AKIA[0-9A-Z]{16}'
+    'aws_secret_access_key'
+    'aws_access_key_id'
+    # Inne
+    'sk-[a-zA-Z0-9]{20,}'
+    'ghp_[a-zA-Z0-9]{36}'
+    'gho_[a-zA-Z0-9]{36}'
+)
+
+FOUND=0
+
+# Pobierz liste staged plikow (tylko dodane/zmodyfikowane, bez binarnych)
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -v '\.png$\|\.jpg$\|\.gif$\|\.ico$\|\.woff$\|\.ttf$\|\.eot$')
+
+if [ -z "$FILES" ]; then
+    echo "${GREEN}[pre-commit] Brak plikow do sprawdzenia.${NC}"
+    exit 0
+fi
+
+for pattern in "${PATTERNS[@]}"; do
+    # Szukaj wzorca w staged plikach
+    MATCHES=$(echo "$FILES" | xargs grep -inE "$pattern" 2>/dev/null || true)
+    if [ -n "$MATCHES" ]; then
+        if [ $FOUND -eq 0 ]; then
+            echo ""
+            echo "${RED}========================================${NC}"
+            echo "${RED}  WYKRYTO POTENCJALNIE WRAZLIWE DANE!${NC}"
+            echo "${RED}========================================${NC}"
+            echo ""
+        fi
+        FOUND=1
+        echo "${YELLOW}Wzorzec: ${pattern}${NC}"
+        echo "$MATCHES" | head -5
+        echo ""
+    fi
+done
+
+# Sprawdz czy staged sa pliki ktore NIE powinny byc w repo
+DANGEROUS_FILES=$(echo "$FILES" | grep -iE '\.env$|\.env\.|\.pem$|\.key$|\.p12$|\.pfx$|id_rsa|\.secret$|credentials|\.keystore$' || true)
+if [ -n "$DANGEROUS_FILES" ]; then
+    if [ $FOUND -eq 0 ]; then
+        echo ""
+        echo "${RED}========================================${NC}"
+        echo "${RED}  WYKRYTO NIEBEZPIECZNE PLIKI!${NC}"
+        echo "${RED}========================================${NC}"
+        echo ""
+    fi
+    FOUND=1
+    echo "${YELLOW}Niebezpieczne pliki w staged:${NC}"
+    echo "$DANGEROUS_FILES"
+    echo ""
+fi
+
+if [ $FOUND -ne 0 ]; then
+    echo "${RED}COMMIT ZABLOKOWANY!${NC}"
+    echo "Usun wrazliwe dane lub uzyj: git commit --no-verify"
+    echo "(tylko jesli jestes PEWIEN ze to false positive)"
+    exit 1
+fi
+
+echo "${GREEN}[pre-commit] OK — brak wrazliwych danych.${NC}"
+exit 0

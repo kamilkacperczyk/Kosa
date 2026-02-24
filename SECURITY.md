@@ -1,4 +1,4 @@
-# Bezpieczenstwo — Kosa
+# Bezpieczenstwo - Kosa
 
 ## Zasady bezpieczenstwa projektu
 
@@ -13,23 +13,26 @@ Do repo NIE WOLNO dodawac:
 
 ### 2. Jak przechowywac sekrety
 
-- Uzyj pliku `.env` (jest w .gitignore — nie trafi do repo)
+- Uzyj pliku `.env` (jest w .gitignore - nie trafi do repo)
 - Lub zmiennych srodowiskowych systemu
 - Pliki `config.local.*` i `*.secret` sa automatycznie ignorowane
 
 ### 3. Pre-commit hook
 
-Repo ma zainstalowany **pre-commit hook** ktory automatycznie:
+Repo ma **pre-commit hook** ktory automatycznie:
 - Skanuje kazdy commit pod katem hasel, tokenow, kluczy, connection stringow
 - **Blokuje commit** jesli wykryje cos podejrzanego
 - Pokazuje dokladnie ktory plik i jaka linia jest problemem
 
-Hook jest w `.git/hooks/pre-commit`.
+Zrodlo hooka: `setup_hooks/pre-commit` (wersjonowane w repo).
+Zainstalowany hook: `.git/hooks/pre-commit` (lokalna kopia).
 
-> **UWAGA**: Hook nie jest wersjonowany (`.git/hooks/` nie jest w repo).
-> Kazdy kto klonuje repo, musi go skopiowac recznie lub uzyc skryptu `setup_hooks.sh`.
+Instalacja po sklonowaniu repo:
+```
+cp setup_hooks/pre-commit .git/hooks/pre-commit
+```
 
-Obejscie (tylko w wyjatkowych sytuacjach, po weryfikacji ze to false positive):
+Obejscie (tylko po weryfikacji ze to false positive):
 ```
 git commit --no-verify
 ```
@@ -37,16 +40,19 @@ git commit --no-verify
 ### 4. .gitignore
 
 Plik `.gitignore` chroni przed przypadkowym dodaniem:
-- `.env`, `.env.*` — pliki srodowiskowe
-- `*.pem`, `*.key`, `*.p12`, `*.pfx` — klucze i certyfikaty
-- `config.local.*`, `credentials.*`, `*.secret` — lokalna konfiguracja
-- `id_rsa*` — klucze SSH
+- `.env`, `.env.*` - pliki srodowiskowe
+- `*.pem`, `*.key`, `*.p12`, `*.pfx` - klucze i certyfikaty
+- `config.local.*`, `credentials.*`, `*.secret` - lokalna konfiguracja
+- `id_rsa*` - klucze SSH
+- `.vscode/settings.json` - lokalne ustawienia edytora
 
-### 5. Branch protection (GitHub)
+### 5. Copilot Agent
 
-Branch `main` jest chroniony:
-- Wymaga Pull Request (brak direct push)
-- Zapobiega przypadkowemu nadpisaniu historii (force push disabled)
+Plik `.github/copilot-instructions.md` ogranicza GitHub Copilot Agent:
+- Operuje WYLACZNIE w obrebie workspace Kosa
+- NIGDY nie czyta plikow poza projektem (klucze SSH, tokeny, .env systemowe)
+- NIGDY nie wyswietla zmiennych srodowiskowych z sekretami
+- Przed kazdym commitem audytuje pliki pod katem wrazliwych danych
 
 ### 6. Co robic gdy wyciekna dane
 
@@ -54,9 +60,5 @@ Jesli przypadkowo scommitowales wrazliwe dane:
 
 1. **NATYCHMIAST** zmien haslo/token/klucz ktory wyciekl
 2. Usun dane z kodu i scommituj poprawke
-3. Jesli dane trafily do historii Git — uzyj `git filter-branch` lub `BFG Repo Cleaner`
-4. Sam commit z usunieciem NIE wystarczy — Git pamięta calą historię
-
-### 7. Kontakt
-
-Jesli znajdziesz problem bezpieczenstwa — zglos to przez prywatna wiadomosc do wlasciciela repo.
+3. Jesli dane trafily do historii Git - uzyj `git filter-branch` lub `BFG Repo Cleaner`
+4. Sam commit z usunieciem NIE wystarczy - Git pamieta cala historie
