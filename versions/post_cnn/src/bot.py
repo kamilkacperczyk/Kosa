@@ -118,7 +118,9 @@ class KosaBot:
         if use_cnn and HAS_CNN:
             try:
                 self.cnn = FishNetInference()
-                print("[BOT] CNN zaladowany — tryb neuronowy")
+                print("[BOT] TRYB HYBRYDOWY:")
+                print("      CNN → rozpoznawanie stanu (WHITE/RED/INACTIVE/HIT/MISS)")
+                print("      Klasyczny → szukanie rybki (background subtraction)")
             except Exception as e:
                 print(f"[BOT] CNN niedostepny ({e}) — tryb klasyczny")
         elif use_cnn and not HAS_CNN:
@@ -128,14 +130,24 @@ class KosaBot:
 
     def _detect_frame(self, frame) -> dict:
         """
-        Unified detekcja — CNN z fallbackiem na klasyczna.
+        Hybrid detekcja — CNN do rozpoznawania stanu, klasyczny detektor do szukania rybki.
+
+        CNN swietnie rozpoznaje kolor tla (WHITE/RED/INACTIVE/HIT_TEXT/MISS_TEXT),
+        ale NIE zna ksztaltu rybki (za malo danych treningowych z pozycjami).
+
+        Klasyczny detektor (background subtraction) dobrze lokalizuje rybke
+        (potwierdzone diagnostyka: 1-5px dokladnosc), ale potrzebuje warmup.
+
+        Tryb hybrydowy laczy zalety obu podejsc:
+        - CNN → stan gry (pewnosc ~100%, dziala na 1 klatce, bez warmup)
+        - Klasyczny → pozycja rybki (background subtraction, 1-5px dokladnosc)
 
         Returns:
             dict z polami: color, fish_pos, state, state_conf
         """
         if self.cnn is not None:
+            # CNN: rozpoznaj stan (kolor tla / napisy HIT/MISS)
             result = self.cnn.predict(frame)
-            # Mapowanie CNN stanow → format kompatybilny z botem
             color_map = {
                 'INACTIVE': 'none',
                 'WHITE': 'white',
@@ -143,15 +155,20 @@ class KosaBot:
                 'HIT_TEXT': 'none',   # nie klikaj w napis HIT
                 'MISS_TEXT': 'none',  # nie klikaj w napis MISS
             }
+            color = color_map.get(result['state'], 'none')
+
+            # Klasyczny detektor: znajdz rybke (background subtraction)
+            # CNN podaje kolor, klasyczny wie gdzie rybka
+            fish_pos = self.detector.find_fish_position(frame, circle_color=color)
+
             return {
-                'color': color_map.get(result['state'], 'none'),
-                'fish_pos': (result['fish_x'], result['fish_y'])
-                             if result['fish_visible'] else None,
+                'color': color,
+                'fish_pos': fish_pos,
                 'state': result['state'],
                 'state_conf': result['state_conf'],
             }
         else:
-            # Fallback: klasyczny detektor
+            # Fallback: w pelni klasyczny detektor
             color = self.detector.detect_circle_color(frame)
             fish_pos = self.detector.find_fish_position(frame, circle_color=color)
             return {
@@ -247,9 +264,13 @@ class KosaBot:
                     if not spot_blocked:
                         self.input.click_at_fish_fast(fx, fy)
                         click_count += 1
+                        conf_str = ""
+                        if detection.get('state_conf'):
+                            conf_str = f" conf={detection['state_conf']:.2f}"
+                        src = "[BG-SUB]" if fish_pos else "[LAST]"
                         if click_count % 5 == 1:  # loguj co 5 klikniec
                             print(f"[BOT] Klik #{click_count} w ({fx},{fy})"
-                                  f" {'[FRESH]' if fish_pos else '[LAST]'}")
+                                  f" {src}{conf_str}")
 
             elif color == "white":
                 no_circle_count = 0
@@ -264,7 +285,13 @@ class KosaBot:
 
             # Debug: podglad na zywo
             if self.debug:
-                if not self._show_debug(frame, color, click_count, last_fish_pos):
+                debug_info = {
+                    'state': detection.get('state', ''),
+                    'conf': detection.get('state_conf', 0),
+                    'method': 'CNN+BgSub' if self.cnn else 'Classic',
+                }
+                if not self._show_debug(frame, color, click_count, last_fish_pos,
+                                        extra=debug_info):
                     return False
 
             time.sleep(SCAN_INTERVAL)
@@ -284,7 +311,7 @@ class KosaBot:
             time.sleep(0.1)
         print("[BOT] Timeout czekania na zamkniecie okna minigry.")
 
-    def _show_debug(self, frame, color, click_count, fish_pos=None) -> bool:
+    def _show_debug(self, frame, color, click_count, fish_pos=None, extra=None) -> bool:
         """
         Wyswietla okno debugowe z podgladem.
 
@@ -328,6 +355,15 @@ class KosaBot:
             cv2.putText(display, "Rybka: ???", (10, 90),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 100, 100), 1)
 
+        # Dodatkowe info (CNN state, confidence, metoda)
+        if extra:
+            method = extra.get('method', '')
+            state = extra.get('state', '')
+            conf = extra.get('conf', 0)
+            cv2.putText(display, f"[{method}] {state} ({conf:.0%})",
+                        (10, display.shape[0] - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (200, 200, 0), 1)
+
         cv2.imshow("Kosa Bot", display)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             print("[BOT] Uzytkownik nacisnal 'q' - koncze.")
@@ -370,6 +406,8 @@ class KosaBot:
                 # 2. Czekaj na minigre
                 if not self.wait_for_fishing_minigame():
                     print("[BOT] Minigra sie nie pojawila. Probuje ponownie...")
+                    # Reset klasycznego detektora — nowa runda, nowe tlo
+                    self.detector.reset_tracking()
                     continue
 
                 # 3. Graj runde
