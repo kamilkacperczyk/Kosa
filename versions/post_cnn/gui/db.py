@@ -23,7 +23,7 @@ def _get_connection():
 
 
 def init_db():
-    """Tworzy tabele users jesli nie istnieje."""
+    """Tworzy tabele users jesli nie istnieje + seeduje konto testowe."""
     conn = _get_connection()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -35,6 +35,26 @@ def init_db():
         )
     """)
     conn.commit()
+    conn.close()
+
+    # Konto testowe — zawsze dostepne
+    _seed_test_user("REDACTED-USER", "REDACTED-PASS")
+
+
+def _seed_test_user(username: str, password: str):
+    """Tworzy konto testowe jesli jeszcze nie istnieje (ciche — bez bledu)."""
+    conn = _get_connection()
+    exists = conn.execute(
+        "SELECT 1 FROM users WHERE username = ?", (username,)
+    ).fetchone()
+    if not exists:
+        salt = secrets.token_hex(16)
+        pw_hash = _hash_password(password, salt)
+        conn.execute(
+            "INSERT INTO users (username, password_hash, salt, created_at) VALUES (?, ?, ?, ?)",
+            (username, pw_hash, salt, datetime.now().isoformat()),
+        )
+        conn.commit()
     conn.close()
 
 

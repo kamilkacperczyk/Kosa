@@ -40,7 +40,7 @@ class LoginScreen(QWidget):
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
-        subtitle = QLabel("Automatyczne lowienie — Metin2 Eryndos")
+        subtitle = QLabel("Automatyczne lowienie - Metin2 Eryndos")
         subtitle.setObjectName("subtitleLabel")
         subtitle.setAlignment(Qt.AlignCenter)
         layout.addWidget(subtitle)

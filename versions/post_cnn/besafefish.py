@@ -18,6 +18,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
+import ctypes
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt
 
@@ -26,6 +27,11 @@ from gui.styles import DARK_THEME
 
 
 def main():
+    # Windows: ustaw AppUserModelID zeby ikona byla widoczna na pasku zadan
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Kosa.BeSafeFish.1.0")
+    except Exception:
+        pass
     # High DPI support
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough

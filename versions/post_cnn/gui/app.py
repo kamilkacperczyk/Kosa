@@ -7,11 +7,16 @@ QStackedWidget przelacza miedzy:
 """
 
 import sys
+import os
 from PySide6.QtWidgets import QMainWindow, QStackedWidget, QApplication
 from PySide6.QtCore import Qt, Slot
+from PySide6.QtGui import QIcon
 
 from gui.login_screen import LoginScreen
 from gui.dashboard import Dashboard
+
+# Sciezka do ikony (gui/fish.ico)
+ICON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fish.ico")
 
 
 class BeSafeFishApp(QMainWindow):
@@ -22,6 +27,10 @@ class BeSafeFishApp(QMainWindow):
         self.setWindowTitle("BeSafeFish")
         self.setMinimumSize(700, 550)
         self.resize(800, 600)
+
+        # Ikona okna (ryba)
+        if os.path.exists(ICON_PATH):
+            self.setWindowIcon(QIcon(ICON_PATH))
 
         # Centralny widget — stos ekranow
         self._stack = QStackedWidget()
@@ -52,7 +61,7 @@ class BeSafeFishApp(QMainWindow):
         self._stack.addWidget(self._dashboard)
         self._stack.setCurrentWidget(self._dashboard)
 
-        self.setWindowTitle(f"BeSafeFish \u2014 {username}")
+        self.setWindowTitle(f"BeSafeFish - {username}")
 
     @Slot()
     def _on_logout(self):
