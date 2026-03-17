@@ -55,7 +55,7 @@ from src.screen_capture import ScreenCapture
 from src.fishing_detector import FishingDetector
 from src.input_simulator import InputSimulator
 from src.config import (
-    SCAN_INTERVAL, CLICKS_TO_WIN, ROUND_PAUSE,
+    SCAN_INTERVAL, CLICKS_TO_WIN,
     CIRCLE_CENTER_X, CIRCLE_CENTER_Y, CIRCLE_RADIUS, CIRCLE_SAFE_MARGIN,
 )
 import math
@@ -219,6 +219,7 @@ class KosaBot:
     def wait_for_fishing_minigame(self, timeout: float = 10.0) -> bool:
         """
         Czeka az okienko minigry lowienia sie pojawi.
+        Uzywa klasycznego detektora (HSV) — niezawodny, bez CNN.
 
         Args:
             timeout: maksymalny czas oczekiwania w sekundach
@@ -230,9 +231,8 @@ class KosaBot:
         start = time.time()
         while time.time() - start < timeout:
             frame = self.capture.grab_fishing_box()
-            result = self._detect_frame(frame)
-            if result['color'] != 'none':
-                print(f"[BOT] Minigra wykryta! (metoda: {'CNN' if self.cnn else 'klasyczna'})")
+            if self.detector.is_fishing_active(frame):
+                print("[BOT] Minigra wykryta!")
                 return True
             time.sleep(SCAN_INTERVAL)
 
@@ -259,10 +259,6 @@ class KosaBot:
         was_active = False
         last_fish_pos = None
         click_spots = []  # tracker klikniec w to samo miejsce [(x, y, count)]
-        round_start = time.time()
-        max_round_time = 60.0  # max 60s na runde — potem wymuszamy koniec
-        no_click_time = None   # czas kiedy ostatnio kliknelismy (lub None)
-        max_no_click = 15.0    # jesli 15s bez klikniecia w fazie aktywnej — runda sie skonczyla
 
         # Reset trackera rybki na poczatku rundy
         self.detector.reset_tracking()
@@ -271,18 +267,21 @@ class KosaBot:
         self.input.ensure_focus()
 
         while self.running:
-            # Timeout rundy
-            elapsed = time.time() - round_start
-            if elapsed > max_round_time:
-                print(f"[BOT] Timeout rundy ({max_round_time}s). Klikniec: {click_count}")
-                return True
-
             frame = self.capture.grab_fishing_box()
 
-            # Unified detekcja: CNN lub klasyczna
-            detection = self._detect_frame(frame)
-            color = detection['color']
-            fish_pos = detection['fish_pos']
+            # Klasyczny detektor koloru (HSV) — niezawodnie wykrywa koniec rundy
+            # CNN nie nadaje sie do tego: po zamknieciu minigry dalej widzi WHITE/RED
+            color = self.detector.detect_circle_color(frame)
+
+            # Szukanie rybki: bg-sub + shape fallback
+            fish_pos = self.detector.find_fish_position(frame, circle_color=color)
+            fish_src = "BG-SUB"
+            if fish_pos is None and self.shape_detector is not None:
+                shape_result = self.shape_detector.find_fish_simple(frame)
+                if shape_result is not None:
+                    fish_pos = shape_result
+                    fish_src = "SHAPE"
+
             if fish_pos is not None:
                 last_fish_pos = fish_pos
 
@@ -312,14 +311,9 @@ class KosaBot:
                     if not spot_blocked:
                         self.input.click_at_fish_fast(fx, fy)
                         click_count += 1
-                        no_click_time = None  # reset — kliknelismy
-                        conf_str = ""
-                        if detection.get('state_conf'):
-                            conf_str = f" conf={detection['state_conf']:.2f}"
-                        src = f"[{detection.get('fish_src', 'BG-SUB')}]" if fish_pos else "[LAST]"
+                        src = f"[{fish_src}]" if fish_pos else "[LAST]"
                         if click_count % 5 == 1:  # loguj co 5 klikniec
-                            print(f"[BOT] Klik #{click_count} w ({fx},{fy})"
-                                  f" {src}{conf_str}")
+                            print(f"[BOT] Klik #{click_count} w ({fx},{fy}) {src}")
 
             elif color == "white":
                 no_circle_count = 0
@@ -332,32 +326,16 @@ class KosaBot:
                     print(f"[BOT] Okno minigry sie zamknelo. Klikniec: {click_count}")
                     return True
 
-            # Detekcja zawieszenia: minigra aktywna ale brak klikniec od dluzszego czasu
-            if was_active and click_count > 0:
-                if no_click_time is None:
-                    no_click_time = time.time()
-                elif time.time() - no_click_time > max_no_click:
-                    print(f"[BOT] Brak klikniec od {max_no_click}s — runda zakonczona. Klikniec: {click_count}")
-                    return True
-
             # Debug: podglad na zywo
             if self.debug:
-                debug_info = {
-                    'state': detection.get('state', ''),
-                    'conf': detection.get('state_conf', 0),
-                    'method': 'CNN+BgSub+Shape' if (self.cnn and self.shape_detector)
-                              else ('CNN+BgSub' if self.cnn else 'Classic'),
-                    'fish_src': detection.get('fish_src', ''),
-                }
-                if not self._show_debug(frame, color, click_count, last_fish_pos,
-                                        extra=debug_info):
+                if not self._show_debug(frame, color, click_count, last_fish_pos):
                     return False
 
             time.sleep(SCAN_INTERVAL)
 
         return False
 
-    def _wait_for_minigame_close(self, timeout: float = 2.0):
+    def _wait_for_minigame_close(self, timeout: float = 5.0):
         """
         Czeka az okno minigry calkowicie zniknie.
         Upewnia sie ze nie zaczniemy nowej rundy za wczesnie.
@@ -496,13 +474,13 @@ class KosaBot:
                 if not self.play_fishing_round():
                     break  # przerwano
 
-                # 4. Czekaj az okno minigry sie zamknie + 3s przerwy
+                # 4. Czekaj az okno minigry sie zamknie + pauza
                 print("[BOT] Czekam az okno minigry calkowicie zniknie...")
                 self._wait_for_minigame_close()
                 # Reset detektora — nowa runda, nowy model tla
                 self.detector.reset_tracking()
-                print(f"[BOT] Pauza {ROUND_PAUSE}s przed nastepna runda...")
-                time.sleep(ROUND_PAUSE)
+                print("[BOT] Pauza 3s przed nastepna runda...")
+                time.sleep(3.0)
 
         except KeyboardInterrupt:
             print("\n[BOT] Przerwano przez Ctrl+C.")
