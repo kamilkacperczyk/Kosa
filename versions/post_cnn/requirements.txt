@@ -6,6 +6,9 @@ pillow==12.1.1
 PyDirectInput==1.0.4
 PyGetWindow==0.0.9
 
+# === GUI (BeSafeFish) ===
+PySide6==6.10.2
+
 # === CNN (trening) ===
 # Potrzebne TYLKO do treningu modelu, nie do uruchomienia bota
 # torch --index-url https://download.pytorch.org/whl/cpu

@@ -120,12 +120,14 @@ class KosaBot:
         new_y = int(CIRCLE_CENTER_Y + dy * scale)
         return (new_x, new_y)
 
-    def __init__(self, debug: bool = False, use_cnn: bool = True):
+    def __init__(self, debug: bool = False, use_cnn: bool = True, log_callback=None):
         """
         Args:
             debug: jesli True, pokazuje okno podgladu z wizualizacja
             use_cnn: jesli True, uzywa CNN do detekcji (z fallbackiem na klasyczna)
+            log_callback: opcjonalna funkcja(str) do przekierowania logow (np. do GUI)
         """
+        self._log_callback = log_callback
         self.capture = ScreenCapture()
         self.detector = FishingDetector()  # klasyczny — zawsze dostepny jako fallback
         self.input = InputSimulator()
@@ -139,24 +141,24 @@ class KosaBot:
         if use_cnn and HAS_CNN:
             try:
                 self.cnn = FishNetInference()
-                print("[BOT] TRYB HYBRYDOWY:")
-                print("      CNN → rozpoznawanie stanu (WHITE/RED/INACTIVE/HIT/MISS)")
-                print("      Klasyczny → szukanie rybki (background subtraction)")
+                self._log("[BOT] TRYB HYBRYDOWY:")
+                self._log("      CNN → rozpoznawanie stanu (WHITE/RED/INACTIVE/HIT/MISS)")
+                self._log("      Klasyczny → szukanie rybki (background subtraction)")
             except Exception as e:
-                print(f"[BOT] CNN niedostepny ({e}) — tryb klasyczny")
+                self._log(f"[BOT] CNN niedostepny ({e}) — tryb klasyczny")
         elif use_cnn and not HAS_CNN:
-            print("[BOT] CNN nie zainstalowany (brak onnxruntime) — tryb klasyczny")
+            self._log("[BOT] CNN nie zainstalowany (brak onnxruntime) — tryb klasyczny")
         else:
-            print("[BOT] Tryb klasyczny (CNN wylaczony)")
+            self._log("[BOT] Tryb klasyczny (CNN wylaczony)")
 
         # Detektor ksztaltu rybki (fallback gdy bg-sub nie znajdzie)
         self.shape_detector = None
         if HAS_SHAPE:
             try:
                 self.shape_detector = FishShapeDetector()
-                print("      Shape → fallback detekcji rybki (tlo referencyjne)")
+                self._log("      Shape → fallback detekcji rybki (tlo referencyjne)")
             except Exception as e:
-                print(f"[BOT] Shape detector niedostepny ({e})")
+                self._log(f"[BOT] Shape detector niedostepny ({e})")
 
         # Patch CNN — weryfikacja kandydatow na rybke (32x32 patch → fish/not_fish)
         self.patch_cnn = None
@@ -176,11 +178,11 @@ class KosaBot:
                     # Warmup
                     dummy = np.random.randn(1, 3, 32, 32).astype(np.float32)
                     self.patch_cnn.run(None, {'patch': dummy})
-                    print("      PatchCNN → weryfikacja kandydatow na rybke (ONNX)")
+                    self._log("      PatchCNN → weryfikacja kandydatow na rybke (ONNX)")
                 else:
-                    print(f"[BOT] PatchCNN model nie znaleziony: {patch_model_path}")
+                    self._log(f"[BOT] PatchCNN model nie znaleziony: {patch_model_path}")
             except Exception as e:
-                print(f"[BOT] PatchCNN niedostepny ({e})")
+                self._log(f"[BOT] PatchCNN niedostepny ({e})")
 
     # --- Patch CNN: weryfikacja kandydatow na rybke ---
     PATCH_SIZE = 32
@@ -311,6 +313,17 @@ class KosaBot:
                 'state_conf': 1.0,
             }
 
+    def _log(self, msg: str):
+        """Loguje wiadomosc — przez callback (GUI) lub print (terminal)."""
+        if self._log_callback:
+            self._log_callback(msg)
+        else:
+            print(msg)
+
+    def stop(self):
+        """Zatrzymuje bota (thread-safe — ustawia flage)."""
+        self.running = False
+
     def wait_for_fishing_minigame(self, timeout: float = 10.0) -> bool:
         """
         Czeka az okienko minigry lowienia sie pojawi.
@@ -322,16 +335,16 @@ class KosaBot:
         Returns:
             True jesli minigra sie pojawila, False jesli timeout
         """
-        print("[BOT] Czekam na pojawienie sie minigry...")
+        self._log("[BOT] Czekam na pojawienie sie minigry...")
         start = time.time()
         while time.time() - start < timeout:
             frame = self.capture.grab_fishing_box()
             if self.detector.is_fishing_active(frame):
-                print("[BOT] Minigra wykryta!")
+                self._log("[BOT] Minigra wykryta!")
                 return True
             time.sleep(SCAN_INTERVAL)
 
-        print("[BOT] Timeout - minigra sie nie pojawila.")
+        self._log("[BOT] Timeout - minigra sie nie pojawila.")
         return False
 
     def play_fishing_round(self) -> bool:
@@ -347,7 +360,7 @@ class KosaBot:
             True jesli runda sie zakonczyla normalnie,
             False jesli przerwano (np. klawisz 'q')
         """
-        print("[BOT] === Rozpoczynam runde lowienia ===")
+        self._log("[BOT] === Rozpoczynam runde lowienia ===")
         click_count = 0
         no_circle_count = 0
         max_no_circle = 15
@@ -421,7 +434,7 @@ class KosaBot:
                         else:
                             src = "[LAST]"
                         if click_count % 5 == 1:  # loguj co 5 klikniec
-                            print(f"[BOT] Klik #{click_count} w ({fx},{fy}) {src}")
+                            self._log(f"[BOT] Klik #{click_count} w ({fx},{fy}) {src}")
 
             elif color == "white":
                 no_circle_count = 0
@@ -431,7 +444,7 @@ class KosaBot:
             else:
                 no_circle_count += 1
                 if was_active and no_circle_count >= max_no_circle:
-                    print(f"[BOT] Okno minigry sie zamknelo. Klikniec: {click_count}")
+                    self._log(f"[BOT] Okno minigry sie zamknelo. Klikniec: {click_count}")
                     return True
 
             # Debug: podglad na zywo
@@ -458,7 +471,7 @@ class KosaBot:
             if not self.detector.is_fishing_active(frame):
                 return  # okno zamkniete
             time.sleep(0.1)
-        print("[BOT] Timeout czekania na zamkniecie okna minigry.")
+        self._log("[BOT] Timeout czekania na zamkniecie okna minigry.")
 
     def _show_debug(self, frame, color, click_count, fish_pos=None, extra=None) -> bool:
         """
@@ -535,7 +548,7 @@ class KosaBot:
 
         cv2.imshow("Kosa Bot", display)
         if cv2.waitKey(1) & 0xFF == ord('q'):
-            print("[BOT] Uzytkownik nacisnal 'q' - koncze.")
+            self._log("[BOT] Uzytkownik nacisnal 'q' - koncze.")
             self.running = False
             return False
         return True
@@ -549,51 +562,50 @@ class KosaBot:
         - Ruszenie myszy w lewy gorny rog (pyautogui failsafe)
         """
         self.running = True
-        print("=" * 50)
-        print("  KOSA BOT - Automatyczne lowienie ryb")
-        print("=" * 50)
-        print()
+        self._log("=" * 50)
+        self._log("  KOSA BOT - Automatyczne lowienie ryb")
+        self._log("=" * 50)
+        self._log("")
 
         # --- Znajdz i sfokusuj okno gry ERYNDOS ---
         from src.input_simulator import _find_game_window, _focus_game_window, GAME_WINDOW_TITLE
         win = _find_game_window()
         if win:
-            print(f"[BOT] Znaleziono okno gry: \"{win.title}\"")
-            print(f"[BOT] Rozmiar: {win.width}x{win.height}, pozycja: ({win.left},{win.top})")
+            self._log(f"[BOT] Znaleziono okno gry: \"{win.title}\"")
+            self._log(f"[BOT] Rozmiar: {win.width}x{win.height}, pozycja: ({win.left},{win.top})")
             if _focus_game_window():
-                print("[BOT] Okno gry przeniesione na pierwszy plan!")
+                self._log("[BOT] Okno gry przeniesione na pierwszy plan!")
             else:
-                print("[BOT] Nie udalo sie aktywowac okna — przelacz recznie!")
+                self._log("[BOT] Nie udalo sie aktywowac okna — przelacz recznie!")
                 time.sleep(3)
         else:
-            print(f"[BOT] UWAGA: Nie znaleziono okna '{GAME_WINDOW_TITLE}'!")
-            print("[BOT] Sprawdz czy gra jest uruchomiona.")
-            print("[BOT] Przelacz sie recznie na okno gry w ciagu 5 sekund!")
+            self._log(f"[BOT] UWAGA: Nie znaleziono okna '{GAME_WINDOW_TITLE}'!")
+            self._log("[BOT] Sprawdz czy gra jest uruchomiona.")
+            self._log("[BOT] Przelacz sie recznie na okno gry w ciagu 5 sekund!")
             time.sleep(5)
 
-        print()
-        print("Zabezpieczenia:")
-        print("  - Rusz mysz w LEWY GORNY ROG ekranu = natychmiastowe przerwanie")
-        print("  - Ctrl+C w terminalu = przerwanie")
+        self._log("")
+        self._log("Zabezpieczenia:")
+        self._log("  - Rusz mysz w LEWY GORNY ROG ekranu = natychmiastowe przerwanie")
         if self.debug:
-            print("  - Klawisz 'q' w oknie podgladu = przerwanie")
-        print()
-        print("Start za 3 sekundy...")
+            self._log("  - Klawisz 'q' w oknie podgladu = przerwanie")
+        self._log("")
+        self._log("Start za 3 sekundy...")
         time.sleep(3)
 
         try:
             while self.running:
                 self.total_rounds += 1
-                print(f"\n{'='*40}")
-                print(f"[BOT] RUNDA {self.total_rounds}")
-                print(f"{'='*40}")
+                self._log(f"\n{'='*40}")
+                self._log(f"[BOT] RUNDA {self.total_rounds}")
+                self._log(f"{'='*40}")
 
                 # 1. Start rundy: robak + wedka
                 self.input.start_fishing_round()
 
                 # 2. Czekaj na minigre
                 if not self.wait_for_fishing_minigame():
-                    print("[BOT] Minigra sie nie pojawila. Probuje ponownie...")
+                    self._log("[BOT] Minigra sie nie pojawila. Probuje ponownie...")
                     # Reset klasycznego detektora — nowa runda, nowe tlo
                     self.detector.reset_tracking()
                     continue
@@ -603,26 +615,26 @@ class KosaBot:
                     break  # przerwano
 
                 # 4. Czekaj az okno minigry sie zamknie + pauza
-                print("[BOT] Czekam az okno minigry calkowicie zniknie...")
+                self._log("[BOT] Czekam az okno minigry calkowicie zniknie...")
                 self._wait_for_minigame_close()
                 # Reset detektora — nowa runda, nowy model tla
                 self.detector.reset_tracking()
-                print("[BOT] Pauza 3s przed nastepna runda...")
+                self._log("[BOT] Pauza 3s przed nastepna runda...")
                 time.sleep(3.0)
 
         except KeyboardInterrupt:
-            print("\n[BOT] Przerwano przez Ctrl+C.")
+            self._log("\n[BOT] Przerwano przez Ctrl+C.")
         except Exception as e:
-            print(f"\n[BOT] Blad: {e}")
+            self._log(f"\n[BOT] Blad: {e}")
         finally:
             self.running = False
             if self.debug:
                 cv2.destroyAllWindows()
-            print()
-            print(f"[BOT] Podsumowanie:")
-            print(f"  Rundy: {self.total_rounds}")
-            print(f"  Udane zlowienia: {self.total_catches}")
-            print(f"[BOT] Koniec.")
+            self._log("")
+            self._log(f"[BOT] Podsumowanie:")
+            self._log(f"  Rundy: {self.total_rounds}")
+            self._log(f"  Udane zlowienia: {self.total_catches}")
+            self._log(f"[BOT] Koniec.")
 
 
 # --- URUCHOMIENIE ---

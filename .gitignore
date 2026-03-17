@@ -58,3 +58,7 @@ versions/post_cnn/cnn/patches/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# === GUI (BeSafeFish) ===
+# Lokalna baza uzytkownikow (SQLite) — nie commituj
+*.db
