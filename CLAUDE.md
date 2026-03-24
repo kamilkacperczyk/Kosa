@@ -8,6 +8,7 @@ Przed wprowadzaniem zmian przeczytaj odpowiedni plik:
 |------|-------|---------------|
 | `versions/post_cnn/docs/deployment-i-architektura.md` | Endpointy API, serwer, gunicorn, Render, PyInstaller | ...pracujesz nad server.py, deploymentem, .exe |
 | `versions/post_cnn/docs/struktura-bazy.md` | Tabele, funkcje SQL, diagram, przeplywy biznesowe | ...pracujesz nad SQL, dodajesz tabele/funkcje |
+| `versions/post_cnn/docs/zasady-sql.md` | Konwencje nazewnictwa, checklist zmian w bazie, zapytania diagnostyczne | ...zmieniasz kolumne/tabele/funkcje/enum w SQL |
 | `versions/post_cnn/cnn/ARCHITEKTURA_CNN.md` | Model PatchCNN, trening, inference, ONNX | ...pracujesz nad CNN/modelem |
 | `SECURITY.md` | Zasady bezpieczenstwa | ...dotykasz auth, hasel, connection stringow |
 
