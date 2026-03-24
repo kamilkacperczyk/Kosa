@@ -120,14 +120,18 @@ class KosaBot:
         new_y = int(CIRCLE_CENTER_Y + dy * scale)
         return (new_x, new_y)
 
-    def __init__(self, debug: bool = False, use_cnn: bool = True, log_callback=None):
+    def __init__(self, debug: bool = False, use_cnn: bool = True, log_callback=None,
+                 round_check_callback=None):
         """
         Args:
             debug: jesli True, pokazuje okno podgladu z wizualizacja
             use_cnn: jesli True, uzywa CNN do detekcji (z fallbackiem na klasyczna)
             log_callback: opcjonalna funkcja(str) do przekierowania logow (np. do GUI)
+            round_check_callback: opcjonalna funkcja() -> (allowed: bool, msg: str)
+                                  wywoływana przed kazda runda do sprawdzenia limitu
         """
         self._log_callback = log_callback
+        self._round_check_callback = round_check_callback
         self.capture = ScreenCapture()
         self.detector = FishingDetector()  # klasyczny — zawsze dostepny jako fallback
         self.input = InputSimulator()
@@ -595,6 +599,13 @@ class KosaBot:
 
         try:
             while self.running:
+                # Sprawdz limit rund (jesli callback ustawiony)
+                if self._round_check_callback:
+                    allowed, check_msg = self._round_check_callback()
+                    if not allowed:
+                        self._log(f"[BOT] {check_msg}")
+                        break
+
                 self.total_rounds += 1
                 self._log(f"\n{'='*40}")
                 self._log(f"[BOT] RUNDA {self.total_rounds}")

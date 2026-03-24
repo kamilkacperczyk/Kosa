@@ -102,3 +102,8 @@ def get_payments(user_id: int) -> dict:
 def get_plans() -> dict:
     """Pobiera liste dostepnych planow."""
     return _api_request("/api/plans")
+
+
+def use_round(user_id: int) -> dict:
+    """Sprawdza limit rund i inkrementuje licznik. Zwraca allowed/rounds_used/max_rounds/msg."""
+    return _api_request("/api/round/use", {"user_id": user_id})

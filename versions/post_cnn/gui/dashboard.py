@@ -180,6 +180,7 @@ class Dashboard(QWidget):
         self._worker = BotWorker(
             debug=False,
             use_cnn=self._cnn_checkbox.isChecked(),
+            user_id=self._user_id,
         )
         self._worker.log_message.connect(self._on_log)
         self._worker.status_changed.connect(self._on_status)
@@ -224,6 +225,16 @@ class Dashboard(QWidget):
                 num = int(msg.split("RUNDA ")[1].split()[0])
                 self._round_count = num
                 self._stats_label.setText(f"Rundy: {self._round_count}")
+            except (ValueError, IndexError):
+                pass
+
+        if "Runda " in msg and "/" in msg:
+            # Aktualizuj statystyki z info o limicie (np. "Runda 5/50")
+            try:
+                parts = msg.split("Runda ")[1].split("/")
+                used = parts[0].strip()
+                limit = parts[1].strip()
+                self._stats_label.setText(f"Rundy: {self._round_count} ({used}/{limit})")
             except (ValueError, IndexError):
                 pass
 

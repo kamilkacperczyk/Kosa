@@ -228,6 +228,39 @@ def get_payments(user_id):
         return jsonify({"ok": False, "msg": f"Blad: {e}"}), 500
 
 
+@app.route("/api/round/use", methods=["POST"])
+def use_round():
+    """Sprawdza limit rund i inkrementuje licznik zuzycia."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"ok": False, "msg": "Brak danych."}), 400
+
+    user_id = data.get("user_id")
+    if not user_id:
+        return jsonify({"ok": False, "msg": "Brak user_id."}), 400
+
+    try:
+        conn = _get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM check_and_increment_rounds(%s)", (user_id,))
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        if row:
+            return jsonify({
+                "ok": True,
+                "allowed": row[0],
+                "rounds_used": row[1],
+                "max_rounds": row[2],
+                "msg": row[3],
+            })
+        return jsonify({"ok": False, "msg": "Brak danych z funkcji."})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": f"Blad: {e}"}), 500
+
+
 @app.route("/api/plans", methods=["GET"])
 def get_plans():
     """Pobiera liste dostepnych planow subskrypcyjnych."""

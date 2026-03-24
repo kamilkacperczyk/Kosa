@@ -8,6 +8,8 @@ Zapewnia thread-safe komunikacje: bot._log() → Signal → GUI._on_log()
 import ctypes
 from PySide6.QtCore import QThread, Signal
 
+from gui.db import use_round
+
 
 class BotWorker(QThread):
     """Watek roboczy uruchamiajacy KosaBot."""
@@ -17,10 +19,11 @@ class BotWorker(QThread):
     status_changed = Signal(str)    # "running" / "stopped" / "error"
     finished_signal = Signal()      # bot zakonczyl prace
 
-    def __init__(self, debug: bool = False, use_cnn: bool = True):
+    def __init__(self, debug: bool = False, use_cnn: bool = True, user_id: int = None):
         super().__init__()
         self._debug = debug
         self._use_cnn = use_cnn
+        self._user_id = user_id
         self._bot = None
 
     def _is_admin(self) -> bool:
@@ -52,6 +55,7 @@ class BotWorker(QThread):
                 debug=False,           # GUI mode — bez cv2.imshow
                 use_cnn=self._use_cnn,
                 log_callback=self._on_log,
+                round_check_callback=self._check_round_limit,
             )
 
             self.log_message.emit("[BOT] Uruchamiam glowna petle...")
@@ -63,6 +67,25 @@ class BotWorker(QThread):
         finally:
             self.status_changed.emit("stopped")
             self.finished_signal.emit()
+
+    def _check_round_limit(self) -> tuple:
+        """Sprawdza limit rund przez API. Zwraca (allowed, msg)."""
+        if not self._user_id:
+            return True, "OK"
+
+        result = use_round(self._user_id)
+        if not result.get("ok"):
+            return False, result.get("msg", "Blad sprawdzania limitu rund")
+
+        allowed = result.get("allowed", False)
+        msg = result.get("msg", "")
+        if allowed:
+            rounds_used = result.get("rounds_used", 0)
+            max_rounds = result.get("max_rounds", -1)
+            if max_rounds > 0:
+                msg = f"Runda {rounds_used}/{max_rounds}"
+            return True, msg
+        return False, msg
 
     def _on_log(self, msg: str):
         """Callback z bota — emituje sygnal do GUI."""

@@ -379,6 +379,30 @@ COMMENT ON COLUMN public.audit_log.changed_fields IS 'Lista zmienionych kolumn';
 COMMENT ON COLUMN public.audit_log.changed_by IS 'Kto dokonal zmiany';
 COMMENT ON COLUMN public.audit_log.created_at IS 'Data zmiany';
 
+-- Tabela: daily_usage (sledzenie dziennego zuzycia rund)
+CREATE TABLE public.daily_usage (
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    usage_date date NOT NULL DEFAULT CURRENT_DATE,
+    rounds_used integer NOT NULL DEFAULT 0,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE SEQUENCE public.daily_usage_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.daily_usage_id_seq OWNED BY public.daily_usage.id;
+ALTER TABLE ONLY public.daily_usage ALTER COLUMN id SET DEFAULT nextval('public.daily_usage_id_seq'::regclass);
+
+ALTER TABLE ONLY public.daily_usage ADD CONSTRAINT daily_usage_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.daily_usage ADD CONSTRAINT daily_usage_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+ALTER TABLE ONLY public.daily_usage ADD CONSTRAINT daily_usage_user_date_uq UNIQUE (user_id, usage_date);
+
+CREATE INDEX idx_daily_usage_user_date ON public.daily_usage USING btree (user_id, usage_date DESC);
+
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.daily_usage FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+COMMENT ON TABLE public.daily_usage IS 'Dzienne zuzycie rund przez uzytkownikow. Jeden wiersz na usera na dzien';
+
 -- ============================================================
 -- 5. FUNKCJE BIZNESOWE
 -- ============================================================
@@ -645,6 +669,76 @@ $$;
 
 COMMENT ON FUNCTION public.check_user_subscription IS 'Sprawdza dostep uzytkownika BeSafeFish. Admin = pelny dostep bez subskrypcji. User = sprawdza aktywna subskrypcje';
 
+-- check_and_increment_rounds
+CREATE OR REPLACE FUNCTION public.check_and_increment_rounds(
+    p_user_id integer
+)
+RETURNS TABLE(
+    allowed boolean,
+    rounds_used integer,
+    max_rounds integer,
+    msg text
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+    v_features JSONB;
+    v_max_rounds INTEGER;
+    v_current_used INTEGER;
+BEGIN
+    SELECT sp.features INTO v_features
+    FROM user_subscriptions us
+    JOIN subscription_plans sp ON sp.id = us.plan_id
+    WHERE us.user_id = p_user_id
+      AND us.status IN ('active', 'trialing')
+      AND (us.current_period_end > now() OR us.current_period_end IS NULL)
+    ORDER BY us.current_period_end DESC NULLS LAST
+    LIMIT 1;
+
+    IF v_features IS NULL THEN
+        RETURN QUERY SELECT FALSE, 0, 0, 'Brak aktywnej subskrypcji'::TEXT;
+        RETURN;
+    END IF;
+
+    v_max_rounds := COALESCE((v_features->>'max_rounds_per_day')::INTEGER, -1);
+
+    IF v_max_rounds = -1 THEN
+        INSERT INTO daily_usage (user_id, usage_date, rounds_used)
+        VALUES (p_user_id, CURRENT_DATE, 1)
+        ON CONFLICT (user_id, usage_date)
+        DO UPDATE SET rounds_used = daily_usage.rounds_used + 1, updated_at = now()
+        RETURNING daily_usage.rounds_used INTO v_current_used;
+
+        RETURN QUERY SELECT TRUE, v_current_used, v_max_rounds, 'Bez limitu'::TEXT;
+        RETURN;
+    END IF;
+
+    SELECT du.rounds_used INTO v_current_used
+    FROM daily_usage du
+    WHERE du.user_id = p_user_id AND du.usage_date = CURRENT_DATE;
+
+    v_current_used := COALESCE(v_current_used, 0);
+
+    IF v_current_used >= v_max_rounds THEN
+        RETURN QUERY SELECT FALSE, v_current_used, v_max_rounds,
+            ('Osiagnieto limit ' || v_max_rounds || ' rund dziennie')::TEXT;
+        RETURN;
+    END IF;
+
+    INSERT INTO daily_usage (user_id, usage_date, rounds_used)
+    VALUES (p_user_id, CURRENT_DATE, 1)
+    ON CONFLICT (user_id, usage_date)
+    DO UPDATE SET rounds_used = daily_usage.rounds_used + 1, updated_at = now()
+    RETURNING daily_usage.rounds_used INTO v_current_used;
+
+    RETURN QUERY SELECT TRUE, v_current_used, v_max_rounds, 'OK'::TEXT;
+END;
+$$;
+
+COMMENT ON FUNCTION public.check_and_increment_rounds IS 'Sprawdza limit rund dziennych i inkrementuje licznik zuzycia';
+
 -- ============================================================
 -- 6. RLS POLITYKI
 -- ============================================================
@@ -655,6 +749,7 @@ ALTER TABLE public.user_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.login_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.daily_usage ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY admin_full_access ON users FOR ALL USING (current_user LIKE 'adm_%') WITH CHECK (true);
 CREATE POLICY admin_full_access ON subscription_plans FOR ALL USING (current_user LIKE 'adm_%') WITH CHECK (true);
@@ -662,6 +757,7 @@ CREATE POLICY admin_full_access ON user_subscriptions FOR ALL USING (current_use
 CREATE POLICY admin_full_access ON payments FOR ALL USING (current_user LIKE 'adm_%') WITH CHECK (true);
 CREATE POLICY admin_full_access ON login_history FOR ALL USING (current_user LIKE 'adm_%') WITH CHECK (true);
 CREATE POLICY admin_full_access ON audit_log FOR ALL USING (current_user LIKE 'adm_%') WITH CHECK (true);
+CREATE POLICY admin_full_access ON daily_usage FOR ALL USING (current_user LIKE 'adm_%') WITH CHECK (true);
 
 -- ============================================================
 -- 7. DANE STARTOWE
