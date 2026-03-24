@@ -25,8 +25,8 @@ class BeSafeFishApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("BeSafeFish")
-        self.setMinimumSize(700, 550)
-        self.resize(800, 600)
+        self.setMinimumSize(800, 650)
+        self.resize(850, 700)
 
         # Ikona okna (ryba)
         if os.path.exists(ICON_PATH):

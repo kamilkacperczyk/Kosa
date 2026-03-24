@@ -269,7 +269,7 @@ class LoginScreen(QWidget):
         form_container = QWidget()
         form_container.setMaximumWidth(360)
         form_layout = QVBoxLayout(form_container)
-        form_layout.setSpacing(10)
+        form_layout.setSpacing(4)
         form_layout.setContentsMargins(0, 0, 0, 0)
 
         # Username
@@ -281,6 +281,7 @@ class LoginScreen(QWidget):
         form_layout.addWidget(self._username_input)
 
         # Email (widoczne tylko w trybie rejestracji)
+        form_layout.addSpacing(6)
         self._email_label = QLabel("Email")
         self._email_label.setVisible(False)
         form_layout.addWidget(self._email_label)
@@ -291,6 +292,7 @@ class LoginScreen(QWidget):
         form_layout.addWidget(self._email_input)
 
         # Password
+        form_layout.addSpacing(6)
         self._password_label = QLabel("Haslo")
         form_layout.addWidget(self._password_label)
         self._password_input = QLineEdit()
@@ -301,6 +303,7 @@ class LoginScreen(QWidget):
         form_layout.addWidget(self._password_input)
 
         # Confirm Password (widoczne tylko w trybie rejestracji)
+        form_layout.addSpacing(6)
         self._confirm_label = QLabel("Powtorz haslo")
         self._confirm_label.setVisible(False)
         form_layout.addWidget(self._confirm_label)
@@ -313,6 +316,7 @@ class LoginScreen(QWidget):
         form_layout.addWidget(self._confirm_input)
 
         # Regulamin - przycisk (widoczny tylko w trybie rejestracji)
+        form_layout.addSpacing(10)
         self._terms_button = QPushButton("Przeczytaj regulamin serwisu")
         self._terms_button.setObjectName("termsButton")
         self._terms_button.setCursor(Qt.PointingHandCursor)
@@ -329,6 +333,7 @@ class LoginScreen(QWidget):
         form_layout.addWidget(self._message_label)
 
         # Przycisk akcji (Zaloguj / Zarejestruj)
+        form_layout.addSpacing(6)
         self._action_button = QPushButton("Zaloguj sie")
         self._action_button.setObjectName("loginButton")
         self._action_button.setMinimumHeight(42)
@@ -336,9 +341,11 @@ class LoginScreen(QWidget):
         form_layout.addWidget(self._action_button)
 
         # Separator
+        form_layout.addSpacing(8)
         sep = QFrame()
         sep.setObjectName("separator")
         sep.setFrameShape(QFrame.HLine)
+        sep.setFixedHeight(1)
         form_layout.addWidget(sep)
 
         # Przelacznik logowanie/rejestracja
