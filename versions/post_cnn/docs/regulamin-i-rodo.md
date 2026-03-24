@@ -117,7 +117,7 @@ DELETE FROM login_history WHERE created_at < now() - interval '90 days';
 ## 6. Przechowywanie IP - szczegoly techniczne
 
 ### Problem z X-Forwarded-For
-Proxy (Render, Cloudflare) dodaje lancuch IP: `REDACTED-IP, 172.64.198.209, 10.23.172.196`.
+Proxy (Render, Cloudflare) dodaje lancuch IP: `przykladowo: 84.52.177.93, 172.64.198.12, 10.23.172.5`.
 Kolumna INET akceptuje tylko jeden adres.
 
 ### Rozwiazanie
