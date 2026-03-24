@@ -69,23 +69,28 @@ class BotWorker(QThread):
             self.finished_signal.emit()
 
     def _check_round_limit(self) -> tuple:
-        """Sprawdza limit rund przez API. Zwraca (allowed, msg)."""
+        """Sprawdza limit rund przez API. Fail-open: blad API = pozwol grac."""
         if not self._user_id:
-            return True, "OK"
+            return True, ""
 
-        result = use_round(self._user_id)
+        try:
+            result = use_round(self._user_id)
+        except Exception:
+            return True, "Brak polaczenia z API — pomijam limit"
+
         if not result.get("ok"):
-            return False, result.get("msg", "Blad sprawdzania limitu rund")
+            # Fail-open: blad serwera nie powinien blokowac bota
+            return True, f"API niedostepne — pomijam limit"
 
-        allowed = result.get("allowed", False)
-        msg = result.get("msg", "")
-        if allowed:
-            rounds_used = result.get("rounds_used", 0)
-            max_rounds = result.get("max_rounds", -1)
-            if max_rounds > 0:
-                msg = f"Runda {rounds_used}/{max_rounds}"
-            return True, msg
-        return False, msg
+        allowed = result.get("allowed", True)
+        if not allowed:
+            return False, result.get("msg", "Limit rund osiagniety")
+
+        rounds_used = result.get("rounds_used", 0)
+        max_rounds = result.get("max_rounds", -1)
+        if max_rounds > 0:
+            return True, f"Runda {rounds_used}/{max_rounds}"
+        return True, ""
 
     def _on_log(self, msg: str):
         """Callback z bota — emituje sygnal do GUI."""

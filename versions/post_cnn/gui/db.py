@@ -117,5 +117,5 @@ def get_daily_usage(user_id: int) -> dict:
 
 
 def use_round(user_id: int) -> dict:
-    """Sprawdza limit rund i inkrementuje licznik. Zwraca allowed/rounds_used/max_rounds/msg."""
-    return _api_request("/api/round/use", {"user_id": user_id})
+    """Sprawdza limit rund i inkrementuje licznik. Krotki timeout zeby nie blokowac bota."""
+    return _api_request("/api/round/use", {"user_id": user_id}, timeout=5)

@@ -4,6 +4,7 @@ Backend strony BeSafeFish - rejestracja uzytkownikow przez WEB.
 Wersja przystosowana do deployu na Render.com (lub inny hosting PaaS).
 - Nie importuje gui.db ani innych modulow z post_cnn — jest samodzielny
 - Laczy sie z baza bezposrednio przez psycopg2 + DATABASE_URL_ADMIN
+- Connection pool (ThreadedConnectionPool) — reuzywanie polaczen
 - Na Render zmienne srodowiskowe ustawiane w Dashboard (Environment)
 - Lokalnie laduje z .env (python-dotenv)
 
@@ -11,7 +12,7 @@ Uruchomienie lokalne:
     python server.py
 
 Deploy (Render/produkcja):
-    gunicorn server:app
+    gunicorn -c gunicorn.conf.py server:app
     Zmienne srodowiskowe: DATABASE_URL_ADMIN, WEB_SYSTEM_USER_ID, GUI_SYSTEM_USER_ID
 
 Migracja na inny hosting:
@@ -25,8 +26,9 @@ Migracja na inny hosting:
 import os
 
 import psycopg2
+import psycopg2.pool
 import psycopg2.extras
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 from dotenv import load_dotenv
 
 # Lokalnie laduje .env, na Render zmienne sa w Environment
@@ -38,11 +40,38 @@ GUI_SYSTEM_USER_ID = int(os.getenv("GUI_SYSTEM_USER_ID", "5"))
 
 app = Flask(__name__, static_folder=".", static_url_path="")
 
+# Connection pool — leniwa inicjalizacja (bezpieczne z gunicorn --preload)
+_pool = None
 
-def _get_connection():
-    if not DATABASE_URL:
-        raise RuntimeError("Brak DATABASE_URL_ADMIN")
-    return psycopg2.connect(DATABASE_URL)
+
+def _get_pool():
+    """Zwraca pool polaczen (tworzy przy pierwszym uzyciu w workerze)."""
+    global _pool
+    if _pool is None:
+        if not DATABASE_URL:
+            raise RuntimeError("Brak DATABASE_URL_ADMIN")
+        _pool = psycopg2.pool.ThreadedConnectionPool(
+            minconn=1,
+            maxconn=4,
+            dsn=DATABASE_URL,
+        )
+    return _pool
+
+
+@app.before_request
+def _before_request():
+    """Pobiera polaczenie z poola na poczatku requestu."""
+    g.db_conn = _get_pool().getconn()
+
+
+@app.teardown_request
+def _teardown_request(exception):
+    """Zwraca polaczenie do poola po zakonczeniu requestu."""
+    conn = g.pop("db_conn", None)
+    if conn is not None:
+        if exception:
+            conn.rollback()
+        _get_pool().putconn(conn, close=bool(exception))
 
 
 @app.route("/")
@@ -73,7 +102,7 @@ def register():
     system_user_id = GUI_SYSTEM_USER_ID if source == "gui" else WEB_SYSTEM_USER_ID
 
     try:
-        conn = _get_connection()
+        conn = g.db_conn
         cur = conn.cursor()
         cur.execute(
             "SET LOCAL app.current_user_id = %s", (str(system_user_id),)
@@ -84,11 +113,12 @@ def register():
         )
         conn.commit()
         cur.close()
-        conn.close()
         return jsonify({"ok": True, "msg": "Konto utworzone! Mozesz pobrac aplikacje i sie zalogowac."})
     except psycopg2.errors.UniqueViolation:
+        conn.rollback()
         return jsonify({"ok": False, "msg": "Uzytkownik o tej nazwie juz istnieje."})
     except Exception as e:
+        conn.rollback()
         return jsonify({"ok": False, "msg": f"Blad rejestracji: {e}"}), 500
 
 
@@ -106,7 +136,7 @@ def login():
         return jsonify({"ok": False, "msg": "Wypelnij wszystkie pola."})
 
     try:
-        conn = _get_connection()
+        conn = g.db_conn
         cur = conn.cursor()
         cur.execute(
             """
@@ -122,7 +152,6 @@ def login():
 
         if not row:
             cur.close()
-            conn.close()
             return jsonify({"ok": False, "msg": "Nieprawidlowa nazwa uzytkownika lub haslo."})
 
         user_id = row[0]
@@ -131,7 +160,6 @@ def login():
         cur.execute("SELECT * FROM check_user_subscription(%s)", (user_id,))
         sub_row = cur.fetchone()
         cur.close()
-        conn.close()
 
         subscription = None
         if sub_row:
@@ -156,11 +184,9 @@ def login():
 def health():
     """Sprawdza czy serwer dziala - uzywany przez GUI do init_db."""
     try:
-        conn = _get_connection()
-        cur = conn.cursor()
+        cur = g.db_conn.cursor()
         cur.execute("SELECT 1")
         cur.close()
-        conn.close()
         return jsonify({"ok": True})
     except Exception:
         return jsonify({"ok": False}), 500
@@ -170,12 +196,10 @@ def health():
 def get_subscription(user_id):
     """Pobiera aktualna subskrypcje usera (z lazy expiration)."""
     try:
-        conn = _get_connection()
-        cur = conn.cursor()
+        cur = g.db_conn.cursor()
         cur.execute("SELECT * FROM check_user_subscription(%s)", (user_id,))
         row = cur.fetchone()
         cur.close()
-        conn.close()
 
         subscription = None
         if row:
@@ -195,8 +219,7 @@ def get_subscription(user_id):
 def get_payments(user_id):
     """Pobiera historie platnosci usera."""
     try:
-        conn = _get_connection()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur = g.db_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute("""
             SELECT p.amount, p.currency, p.status, p.description,
                    p.paid_at, p.created_at, sp.name as plan_name
@@ -209,7 +232,6 @@ def get_payments(user_id):
         """, (user_id,))
         rows = cur.fetchall()
         cur.close()
-        conn.close()
 
         payments = []
         for r in rows:
@@ -232,8 +254,7 @@ def get_payments(user_id):
 def get_usage(user_id):
     """Pobiera dzienne zuzycie rund usera (bez inkrementacji)."""
     try:
-        conn = _get_connection()
-        cur = conn.cursor()
+        cur = g.db_conn.cursor()
 
         # Aktualne zuzycie
         cur.execute(
@@ -247,7 +268,6 @@ def get_usage(user_id):
         cur.execute("SELECT * FROM check_user_subscription(%s)", (user_id,))
         sub_row = cur.fetchone()
         cur.close()
-        conn.close()
 
         max_rounds = 0
         if sub_row and sub_row[2]:
@@ -274,13 +294,12 @@ def use_round():
         return jsonify({"ok": False, "msg": "Brak user_id."}), 400
 
     try:
-        conn = _get_connection()
+        conn = g.db_conn
         cur = conn.cursor()
         cur.execute("SELECT * FROM check_and_increment_rounds(%s)", (user_id,))
         row = cur.fetchone()
         conn.commit()
         cur.close()
-        conn.close()
 
         if row:
             return jsonify({
@@ -292,6 +311,7 @@ def use_round():
             })
         return jsonify({"ok": False, "msg": "Brak danych z funkcji."})
     except Exception as e:
+        g.db_conn.rollback()
         return jsonify({"ok": False, "msg": f"Blad: {e}"}), 500
 
 
@@ -299,8 +319,7 @@ def use_round():
 def get_plans():
     """Pobiera liste dostepnych planow subskrypcyjnych."""
     try:
-        conn = _get_connection()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur = g.db_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute("""
             SELECT name, slug, description, price, currency, billing_period, features
             FROM subscription_plans
@@ -309,7 +328,6 @@ def get_plans():
         """)
         rows = cur.fetchall()
         cur.close()
-        conn.close()
 
         plans = []
         for r in rows:
