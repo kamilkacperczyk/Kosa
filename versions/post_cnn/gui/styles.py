@@ -48,7 +48,7 @@ QPushButton#startButton {
     color: white;
     font-size: 18px;
     font-weight: bold;
-    border: 2px solid #17b890;
+    border: none;
     border-radius: 10px;
     padding: 15px 40px;
     min-height: 40px;
@@ -66,7 +66,7 @@ QPushButton#stopButton {
     color: white;
     font-size: 18px;
     font-weight: bold;
-    border: 2px solid #ff6b6b;
+    border: none;
     border-radius: 10px;
     padding: 15px 40px;
     min-height: 40px;
@@ -84,7 +84,7 @@ QPushButton#loginButton {
     color: white;
     font-size: 15px;
     font-weight: bold;
-    border: 2px solid #17b890;
+    border: none;
     border-radius: 8px;
     padding: 10px 30px;
 }
@@ -107,14 +107,15 @@ QPushButton#registerButton:hover {
 QPushButton#logoutButton {
     background-color: transparent;
     color: #888;
-    border: 1px solid #444;
-    border-radius: 4px;
-    padding: 4px 12px;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 5px 14px;
     font-size: 11px;
 }
 QPushButton#logoutButton:hover {
     color: #e0e0e0;
-    border-color: #666;
+    border-color: #53a8b6;
+    background-color: #16213e;
 }
 
 /* === POLA TEKSTOWE === */
@@ -136,8 +137,8 @@ QPlainTextEdit {
     background-color: #0d1117;
     color: #c9d1d9;
     border: 1px solid #21262d;
-    border-radius: 6px;
-    padding: 8px;
+    border-radius: 8px;
+    padding: 10px;
     font-family: "Cascadia Code", "Consolas", monospace;
     font-size: 12px;
     selection-background-color: #1b998b;
@@ -224,20 +225,25 @@ QCheckBox::indicator:checked {
 /* === TABS === */
 QTabWidget::pane {
     border: 1px solid #0f3460;
+    border-top: 2px solid #0f3460;
     background-color: #1a1a2e;
+    border-radius: 0 0 8px 8px;
 }
 QTabBar::tab {
     background-color: #16213e;
     color: #888;
-    padding: 8px 24px;
+    padding: 10px 28px;
     border: 1px solid #0f3460;
     border-bottom: none;
     margin-right: 2px;
+    font-size: 13px;
+    font-weight: bold;
+    border-radius: 6px 6px 0 0;
 }
 QTabBar::tab:selected {
     background-color: #1a1a2e;
     color: #53a8b6;
-    border-bottom: 2px solid #1b998b;
+    border-bottom: 3px solid #1b998b;
 }
 QTabBar::tab:hover:!selected {
     color: #e0e0e0;
@@ -248,7 +254,7 @@ QTabBar::tab:hover:!selected {
 QFrame#subscriptionCard {
     background-color: #16213e;
     border: 1px solid #0f3460;
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 16px;
 }
 
@@ -256,21 +262,25 @@ QFrame#subscriptionCard {
 QTableWidget {
     background-color: #0d1117;
     border: 1px solid #21262d;
+    border-radius: 6px;
     gridline-color: #21262d;
     font-size: 12px;
 }
 QTableWidget::item {
-    padding: 4px 8px;
+    padding: 6px 10px;
     color: #c9d1d9;
+    border-bottom: 1px solid #21262d;
 }
 QTableWidget::item:selected {
     background-color: #1b998b;
+    color: white;
 }
 QHeaderView::section {
     background-color: #16213e;
     color: #53a8b6;
-    border: 1px solid #0f3460;
-    padding: 4px 8px;
+    border: none;
+    border-bottom: 2px solid #0f3460;
+    padding: 6px 10px;
     font-size: 12px;
     font-weight: bold;
 }

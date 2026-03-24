@@ -228,6 +228,40 @@ def get_payments(user_id):
         return jsonify({"ok": False, "msg": f"Blad: {e}"}), 500
 
 
+@app.route("/api/usage/<int:user_id>", methods=["GET"])
+def get_usage(user_id):
+    """Pobiera dzienne zuzycie rund usera (bez inkrementacji)."""
+    try:
+        conn = _get_connection()
+        cur = conn.cursor()
+
+        # Aktualne zuzycie
+        cur.execute(
+            "SELECT rounds_used FROM daily_usage WHERE user_id = %s AND usage_date = CURRENT_DATE",
+            (user_id,),
+        )
+        row = cur.fetchone()
+        rounds_used = row[0] if row else 0
+
+        # Limit z subskrypcji
+        cur.execute("SELECT * FROM check_user_subscription(%s)", (user_id,))
+        sub_row = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        max_rounds = 0
+        if sub_row and sub_row[2]:
+            max_rounds = sub_row[2].get("max_rounds_per_day", 0)
+
+        return jsonify({
+            "ok": True,
+            "rounds_used": rounds_used,
+            "max_rounds": max_rounds,
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "msg": f"Blad: {e}"}), 500
+
+
 @app.route("/api/round/use", methods=["POST"])
 def use_round():
     """Sprawdza limit rund i inkrementuje licznik zuzycia."""

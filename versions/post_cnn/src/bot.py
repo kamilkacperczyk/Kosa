@@ -603,8 +603,10 @@ class KosaBot:
                 if self._round_check_callback:
                     allowed, check_msg = self._round_check_callback()
                     if not allowed:
-                        self._log(f"[BOT] {check_msg}")
+                        self._log(f"[BOT] LIMIT RUND: {check_msg}")
                         break
+                    if check_msg:
+                        self._log(f"[LIMIT] {check_msg}")
 
                 self.total_rounds += 1
                 self._log(f"\n{'='*40}")

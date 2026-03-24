@@ -104,6 +104,11 @@ def get_plans() -> dict:
     return _api_request("/api/plans")
 
 
+def get_daily_usage(user_id: int) -> dict:
+    """Pobiera dzienne zuzycie rund (bez inkrementacji)."""
+    return _api_request(f"/api/usage/{user_id}")
+
+
 def use_round(user_id: int) -> dict:
     """Sprawdza limit rund i inkrementuje licznik. Zwraca allowed/rounds_used/max_rounds/msg."""
     return _api_request("/api/round/use", {"user_id": user_id})
