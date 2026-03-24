@@ -205,10 +205,23 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
     height: 0px;
 }
 
+/* === TERMS BROWSER === */
+#termsBrowser {
+    background-color: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 6px;
+    padding: 8px;
+    color: #c8d0da;
+    font-size: 12px;
+}
+
 /* === CHECKBOX === */
 QCheckBox {
     color: #e0e0e0;
     spacing: 8px;
+}
+QCheckBox:disabled {
+    color: #555;
 }
 QCheckBox::indicator {
     width: 16px;

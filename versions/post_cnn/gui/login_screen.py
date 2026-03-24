@@ -8,6 +8,7 @@ Po udanym logowaniu emituje sygnal login_success(username).
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QLineEdit, QPushButton, QFrame, QSpacerItem, QSizePolicy, QCheckBox,
+    QTextBrowser,
 )
 from PySide6.QtCore import Signal, Qt, QThread
 
@@ -113,12 +114,34 @@ class LoginScreen(QWidget):
         self._confirm_input.setVisible(False)
         form_layout.addWidget(self._confirm_input)
 
-        # Checkbox regulaminu (widoczny tylko w trybie rejestracji)
-        form_layout.addSpacing(4)
+        # Regulamin (widoczny tylko w trybie rejestracji)
+        form_layout.addSpacing(8)
+        self._terms_label = QLabel("Regulamin serwisu i polityka prywatnosci")
+        self._terms_label.setStyleSheet("font-weight: 600; font-size: 12px;")
+        self._terms_label.setVisible(False)
+        form_layout.addWidget(self._terms_label)
+
+        self._terms_browser = QTextBrowser()
+        self._terms_browser.setObjectName("termsBrowser")
+        self._terms_browser.setOpenExternalLinks(False)
+        self._terms_browser.setMinimumHeight(160)
+        self._terms_browser.setMaximumHeight(200)
+        self._terms_browser.setVisible(False)
+        self._terms_browser.setHtml(self._get_terms_html())
+        self._terms_browser.verticalScrollBar().valueChanged.connect(self._on_terms_scroll)
+        form_layout.addWidget(self._terms_browser)
+
         self._terms_checkbox = QCheckBox("Akceptuje regulamin serwisu i polityke prywatnosci")
         self._terms_checkbox.setObjectName("termsCheckbox")
         self._terms_checkbox.setVisible(False)
+        self._terms_checkbox.setEnabled(False)
         form_layout.addWidget(self._terms_checkbox)
+
+        self._terms_hint = QLabel("Przewin regulamin do konca, aby moc zaakceptowac")
+        self._terms_hint.setStyleSheet("color: #64748b; font-size: 11px; font-style: italic;")
+        self._terms_hint.setAlignment(Qt.AlignCenter)
+        self._terms_hint.setVisible(False)
+        form_layout.addWidget(self._terms_hint)
 
         # Komunikat bledu / sukcesu
         form_layout.addSpacing(4)
@@ -212,7 +235,15 @@ class LoginScreen(QWidget):
             self._email_input.setVisible(True)
             self._confirm_label.setVisible(True)
             self._confirm_input.setVisible(True)
+            self._terms_label.setVisible(True)
+            self._terms_browser.setVisible(True)
             self._terms_checkbox.setVisible(True)
+            self._terms_hint.setVisible(True)
+            # Reset - musi przewinac regulamin od nowa
+            self._terms_browser.verticalScrollBar().setValue(0)
+            self._terms_checkbox.setChecked(False)
+            self._terms_checkbox.setEnabled(False)
+            self._terms_hint.setVisible(True)
         else:
             self._action_button.setText("Zaloguj sie")
             self._toggle_button.setText("Nie masz konta? Zarejestruj sie")
@@ -220,8 +251,12 @@ class LoginScreen(QWidget):
             self._email_input.setVisible(False)
             self._confirm_label.setVisible(False)
             self._confirm_input.setVisible(False)
+            self._terms_label.setVisible(False)
+            self._terms_browser.setVisible(False)
             self._terms_checkbox.setVisible(False)
             self._terms_checkbox.setChecked(False)
+            self._terms_checkbox.setEnabled(False)
+            self._terms_hint.setVisible(False)
 
     def _on_action(self):
         """Obsluguje klikniecie przycisku Zaloguj/Zarejestruj."""
@@ -263,6 +298,78 @@ class LoginScreen(QWidget):
                 self.login_success.emit(username, user_id, subscription)
             else:
                 self._show_error(msg)
+
+    def _on_terms_scroll(self):
+        """Odblokuj checkbox gdy uzytkownik przewinie regulamin do konca."""
+        sb = self._terms_browser.verticalScrollBar()
+        if sb.value() >= sb.maximum() - 10:
+            self._terms_checkbox.setEnabled(True)
+            self._terms_hint.setVisible(False)
+
+    @staticmethod
+    def _get_terms_html():
+        return """
+        <div style="font-family: Inter, sans-serif; font-size: 12px; color: #c8d0da; line-height: 1.6;">
+        <h3 style="color: #e2e8f0;">1. Postanowienia ogolne</h3>
+        <p>Serwis BeSafeFish umozliwia korzystanie z oprogramowania do automatycznego lowienia ryb
+        w grze Metin2. Serwis ma charakter edukacyjny - prezentuje zastosowanie sieci neuronowych (CNN)
+        do analizy obrazu w czasie rzeczywistym.</p>
+
+        <h3 style="color: #e2e8f0;">2. Konto uzytkownika</h3>
+        <ul>
+        <li>Rejestracja wymaga podania nazwy uzytkownika, adresu email i hasla.</li>
+        <li>Uzytkownik odpowiada za bezpieczenstwo swoich danych logowania.</li>
+        <li>Jedno konto na osobe. Konta wielokrotne moga zostac zablokowane.</li>
+        </ul>
+
+        <h3 style="color: #e2e8f0;">3. Plany i subskrypcje</h3>
+        <ul>
+        <li>Darmowy plan: 50 rund dziennie, bez oplat, bez limitu czasowego.</li>
+        <li>Plan Premium: bez limitu rund, platny miesiecznie.</li>
+        <li>Po wygasnieciu Premium konto wraca do planu darmowego.</li>
+        </ul>
+
+        <h3 style="color: #e2e8f0;">4. Charakter uslugi i odpowiedzialnosc</h3>
+        <ul>
+        <li>BeSafeFish to narzedzie oparte na sztucznej inteligencji - jego skutecznosc zalezy od wielu
+        czynnikow (rozdzielczosc ekranu, ustawienia gry, obciazenie systemu).</li>
+        <li>Korzystanie z narzedzi automatyzujacych rozgrywke moze byc niezgodne z regulaminem gry.
+        Uzytkownik podejmuje te decyzje samodzielnie i na wlasna odpowiedzialnosc.</li>
+        <li>BeSafeFish nie ponosi odpowiedzialnosci za ewentualne sankcje ze strony wydawcy gry.</li>
+        </ul>
+
+        <h3 style="color: #e2e8f0;">5. Jakie dane zbieramy</h3>
+        <ul>
+        <li><b>Dane konta:</b> nazwa uzytkownika, adres email, zahashowane haslo (bcrypt).</li>
+        <li><b>Historia logowan:</b> adres IP, User-Agent, data i wynik proby logowania.</li>
+        <li><b>Dane uzytkowania:</b> liczba wykorzystanych rund dziennie.</li>
+        </ul>
+
+        <h3 style="color: #e2e8f0;">6. Cel przetwarzania danych</h3>
+        <ul>
+        <li><b>Dane konta</b> - umozliwienie logowania i korzystania z Serwisu (art. 6 ust. 1 lit. b RODO).</li>
+        <li><b>Historia logowan (IP)</b> - bezpieczenstwo systemu (art. 6 ust. 1 lit. f RODO).</li>
+        <li><b>Dane uzytkowania</b> - egzekwowanie limitow planu subskrypcyjnego.</li>
+        </ul>
+
+        <h3 style="color: #e2e8f0;">7. Przechowywanie i ochrona danych</h3>
+        <ul>
+        <li>Hasla sa hashowane algorytmem bcrypt.</li>
+        <li>Historia logowan przechowywana maksymalnie 90 dni.</li>
+        <li>Dane przechowywane na serwerach w UE (Supabase).</li>
+        <li>Polaczenie szyfrowane (HTTPS/SSL).</li>
+        </ul>
+
+        <h3 style="color: #e2e8f0;">8. Prawa uzytkownika (RODO)</h3>
+        <p>Kazdy uzytkownik ma prawo do: dostepu do swoich danych, sprostowania, usuniecia konta
+        i wszystkich danych, przenoszenia danych oraz sprzeciwu wobec przetwarzania.
+        W celu realizacji tych praw skontaktuj sie z administratorem serwisu.</p>
+
+        <h3 style="color: #e2e8f0;">9. Zmiany regulaminu</h3>
+        <p>Administrator zastrzega sobie prawo do zmiany regulaminu. O istotnych zmianach uzytkownicy
+        zostana poinformowani.</p>
+        </div>
+        """
 
     def _show_error(self, msg: str):
         self._message_label.setStyleSheet("color: #e63946;")
