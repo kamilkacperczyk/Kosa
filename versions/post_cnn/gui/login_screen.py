@@ -63,6 +63,18 @@ class LoginScreen(QWidget):
         self._username_input.setMinimumHeight(40)
         form_layout.addWidget(self._username_input)
 
+        # Email (widoczne tylko w trybie rejestracji)
+        form_layout.addSpacing(4)
+        self._email_label = QLabel("Email")
+        self._email_label.setVisible(False)
+        form_layout.addWidget(self._email_label)
+
+        self._email_input = QLineEdit()
+        self._email_input.setPlaceholderText("Wpisz adres email...")
+        self._email_input.setMinimumHeight(40)
+        self._email_input.setVisible(False)
+        form_layout.addWidget(self._email_input)
+
         # Password
         form_layout.addSpacing(4)
         self._password_label = QLabel("Haslo")
@@ -128,6 +140,7 @@ class LoginScreen(QWidget):
 
         # Enter = zaloguj
         self._username_input.returnPressed.connect(self._on_action)
+        self._email_input.returnPressed.connect(self._on_action)
         self._password_input.returnPressed.connect(self._on_action)
         self._confirm_input.returnPressed.connect(self._on_action)
 
@@ -139,11 +152,15 @@ class LoginScreen(QWidget):
         if self._is_register_mode:
             self._action_button.setText("Zarejestruj sie")
             self._toggle_button.setText("Masz juz konto? Zaloguj sie")
+            self._email_label.setVisible(True)
+            self._email_input.setVisible(True)
             self._confirm_label.setVisible(True)
             self._confirm_input.setVisible(True)
         else:
             self._action_button.setText("Zaloguj sie")
             self._toggle_button.setText("Nie masz konta? Zarejestruj sie")
+            self._email_label.setVisible(False)
+            self._email_input.setVisible(False)
             self._confirm_label.setVisible(False)
             self._confirm_input.setVisible(False)
 
@@ -157,12 +174,16 @@ class LoginScreen(QWidget):
             return
 
         if self._is_register_mode:
+            email = self._email_input.text().strip()
             confirm = self._confirm_input.text()
+            if not email:
+                self._show_error("Podaj adres email.")
+                return
             if password != confirm:
                 self._show_error("Hasla sie nie zgadzaja.")
                 return
 
-            ok, msg = register_user(username, password)
+            ok, msg = register_user(username, email, password)
             if ok:
                 self._show_success(msg + " Mozesz sie zalogowac.")
                 self._toggle_mode()  # wroc do logowania

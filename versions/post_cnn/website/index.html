@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeSafeFish - Automatyczne łowienie Metin2</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="navbar">
+    <div class="nav-container">
+        <a href="#" class="nav-logo">&#x1F41F; BeSafeFish</a>
+        <ul class="nav-links">
+            <li><a href="#features">Funkcje</a></li>
+            <li><a href="#how-it-works">Jak działa</a></li>
+            <li><a href="#safety">Bezpieczeństwo</a></li>
+            <li><a href="#minigames">Mini-gry</a></li>
+            <li><a href="#download">Pobierz</a></li>
+            <li><a href="#register">Rejestracja</a></li>
+        </ul>
+        <a href="#register" class="nav-cta">Dołącz teraz</a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-bg">
+        <div class="hero-particles" id="particles"></div>
+        <div class="hero-glow hero-glow-1"></div>
+        <div class="hero-glow hero-glow-2"></div>
+        <div class="hero-glow hero-glow-3"></div>
+        <div class="hero-grid-lines"></div>
+    </div>
+    <div class="hero-content">
+        <div class="hero-badge">Oparty na sieciach neuronowych</div>
+        <h1>Łowienie ryb w Metin2<br><span class="gradient-text">bez ryzyka bana</span></h1>
+        <p class="hero-subtitle">
+            BeSafeFish analizuje obraz gry w czasie rzeczywistym za pomocą CNN.
+            Nie modyfikuje plików gry, nie odczytuje pamięci procesu - widzi to, co Ty widzisz na ekranie.
+        </p>
+        <div class="hero-buttons">
+            <a href="#register" class="btn btn-primary">Zarejestruj się</a>
+            <a href="#how-it-works" class="btn btn-outline">Jak to działa?</a>
+        </div>
+        <div class="hero-stats">
+            <div class="stat">
+                <span class="stat-value">CNN</span>
+                <span class="stat-label">Sieć neuronowa</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat">
+                <span class="stat-value">0%</span>
+                <span class="stat-label">Ingerencji w grę</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat">
+                <span class="stat-value">24/7</span>
+                <span class="stat-label">Automatyczne łowienie</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="features">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-tag">Funkcje</span>
+            <h2>Dlaczego BeSafeFish?</h2>
+            <p>Jedyny bot do łowienia oparty na sztucznej inteligencji, który nie dotyka plików gry.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F9E0;</div>
+                <h3>Sieci neuronowe (CNN)</h3>
+                <p>Wytrenowany model PatchCNN rozpoznaje ryby na ekranie z wysoką precyzją. Żadnych reguł &quot;na sztywno&quot; - bot uczy się rozpoznawać wzorce.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F6E1;&#xFE0F;</div>
+                <h3>Bezpieczne działanie</h3>
+                <p>Nie wstrzykuje kodu, nie modyfikuje plików klienta, nie czyta pamięci procesu. Analizuje wyłącznie obraz ekranu - tak jak Ty patrzysz na monitor.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F3AF;</div>
+                <h3>Precyzyjna detekcja</h3>
+                <p>Odejmowanie tła i klasyfikacja CNN eliminują fałszywe trafienia. Bot reaguje tylko na prawdziwe ryby.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x26A1;</div>
+                <h3>Szybka reakcja</h3>
+                <p>Inferencja ONNX w milisekundach. Bot łapie ryby szybciej niż człowiek - bez zmęczenia, 24 godziny na dobę.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F3AE;</div>
+                <h3>Prosty interfejs</h3>
+                <p>Aplikacja desktopowa z ciemnym motywem. Zaloguj się, kliknij &quot;Start&quot; i gotowe. Żadnej konfiguracji.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F512;</div>
+                <h3>Konto i subskrypcja</h3>
+                <p>Zarejestruj się, wybierz plan i korzystaj. Darmowy plan pozwala przetestować bota przed zakupem.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works" class="how-it-works">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-tag">Jak działa</span>
+            <h2>Od ekranu do złowionej ryby</h2>
+            <p>Cały proces zajmuje ułamki sekund i nie wymaga dostępu do plików gry.</p>
+        </div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Przechwycenie ekranu</h3>
+                    <p>Bot robi zrzut wybranego regionu ekranu za pomocą biblioteki MSS. Gra nie wie, że jest obserwowana.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Odejmowanie tła</h3>
+                    <p>Algorytm porównuje klatki i wykrywa ruch - obiekty, które mogą być rybą.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Klasyfikacja CNN</h3>
+                    <p>Model PatchCNN (ONNX) analizuje każdy wykryty obiekt i decyduje: ryba czy nie ryba.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h3>Kliknięcie</h3>
+                    <p>Jeśli CNN potwierdzi rybę - bot klika w odpowiednie miejsce. Cały cykl powtarza się automatycznie.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- SAFETY -->
+<section id="safety" class="safety">
+    <div class="container">
+        <div class="safety-grid">
+            <div class="safety-content">
+                <span class="section-tag">Bezpieczeństwo</span>
+                <h2>Dlaczego ryzyko bana jest <span class="gradient-text">minimalne</span>?</h2>
+                <p>Tradycyjne boty modyfikują pamięć gry, wstrzykują DLL-ki lub czytają pakiety sieciowe. Każda z tych metod zostawia ślady, które antycheat może wykryć.</p>
+                <p><strong>BeSafeFish działa inaczej.</strong> Robi dokładnie to, co robi człowiek - patrzy na ekran i klika myszką. Żadnego dostępu do procesu gry, żadnych zmodyfikowanych plików.</p>
+                <div class="safety-comparison">
+                    <div class="comparison-col comparison-bad">
+                        <h4>&#x274C; Tradycyjne boty</h4>
+                        <ul>
+                            <li>Wstrzykiwanie DLL</li>
+                            <li>Odczyt pamięci procesu</li>
+                            <li>Modyfikacja plików klienta</li>
+                            <li>Przechwytywanie pakietów</li>
+                        </ul>
+                    </div>
+                    <div class="comparison-col comparison-good">
+                        <h4>&#x2705; BeSafeFish</h4>
+                        <ul>
+                            <li>Analiza obrazu ekranu</li>
+                            <li>Sieć neuronowa CNN</li>
+                            <li>Symulacja kliknięć myszką</li>
+                            <li>Zero dostępu do plików gry</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="safety-visual">
+                <div class="shield-graphic">
+                    <div class="shield-icon">&#x1F6E1;&#xFE0F;</div>
+                    <div class="shield-ring"></div>
+                    <div class="shield-ring shield-ring-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- MINI-GRY -->
+<section id="minigames" class="minigames">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-tag">Obsługiwane mini-gry</span>
+            <h2>Co potrafi BeSafeFish?</h2>
+            <p>Aktualnie bot obsługuje jedną mini-grę - ale robi to perfekcyjnie.</p>
+        </div>
+        <div class="minigame-showcase">
+            <div class="minigame-image">
+                <img src="img/minigame_fish_detected.png" alt="Mini-gra łowienia - rybka wykryta przez CNN">
+                <div class="minigame-image-badge">Rybka wykryta przez CNN</div>
+            </div>
+            <div class="minigame-details">
+                <div class="minigame-status">&#x2705; Obsługiwana</div>
+                <h3>Mini-gra łowienia ryb</h3>
+                <p>Klasyczna mini-gra z Metin2 - postać zarzuca wędkę, a na ekranie pojawia się niebieskie okno z wodą. Rybka pojawia się losowo i trzeba ją kliknąć w odpowiednim momencie.</p>
+                <ul class="minigame-features">
+                    <li><strong>Detekcja rybki</strong> - model PatchCNN rozpoznaje rybkę na tle wody z ponad 95% skutecznością</li>
+                    <li><strong>Czerwone / białe kółko</strong> - bot widzi różnicę między stanem "ryba w zasięgu" (czerwone) a "ryba poza zasięgiem" (białe)</li>
+                    <li><strong>Automatyczne kliknięcie</strong> - po wykryciu rybki bot natychmiast klika, szybciej niż człowiek</li>
+                    <li><strong>Praca w pętli</strong> - po złowieniu ryby bot automatycznie zarzuca wędkę ponownie</li>
+                </ul>
+                <div class="minigame-note">
+                    <strong>Kolejne mini-gry?</strong> Planujemy dodanie obsługi kolejnych aktywności w przyszłych wersjach.
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section id="download" class="download">
+    <div class="container">
+        <div class="download-box">
+            <div class="download-info">
+                <span class="section-tag">Pobierz</span>
+                <h2>Pobierz BeSafeFish</h2>
+                <p>Zarejestruj się, pobierz aplikację i zacznij łowić. Instalacja zajmuje mniej niż minutę.</p>
+                <div class="download-requirements">
+                    <h4>Wymagania systemowe</h4>
+                    <ul>
+                        <li>Windows 10 / 11</li>
+                        <li>Python 3.10+ (lub wersja .exe)</li>
+                        <li>Metin2 uruchomiony w oknie</li>
+                        <li>Konto BeSafeFish</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="download-action">
+                <div class="download-card">
+                    <div class="download-icon">&#x1F4E5;</div>
+                    <h3>BeSafeFish v1.0</h3>
+                    <p class="download-version">Wersja testowa - plik próbny</p>
+                    <a href="download/BeSafeFish_info.txt" download class="btn btn-primary btn-full">Pobierz teraz</a>
+                    <p class="download-size">Plik .txt - wersja próbna</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- REGISTER -->
+<section id="register" class="register">
+    <div class="container">
+        <div class="register-grid">
+            <div class="register-info">
+                <span class="section-tag">Dołącz do nas</span>
+                <h2>Stwórz konto i zacznij <span class="gradient-text">łowić</span></h2>
+                <p>Rejestracja jest darmowa. Po założeniu konta otrzymujesz darmowy plan z limitem 50 rund dziennie - wystarczająco, żeby przetestować bota.</p>
+                <div class="plan-cards">
+                    <div class="plan-card">
+                        <div class="plan-name">Darmowy</div>
+                        <div class="plan-price">0 PLN</div>
+                        <ul>
+                            <li>50 rund dziennie</li>
+                            <li>1 sesja</li>
+                            <li>Pełna funkcjonalność CNN</li>
+                        </ul>
+                    </div>
+                    <div class="plan-card plan-premium">
+                        <div class="plan-badge">Popularny</div>
+                        <div class="plan-name">Premium</div>
+                        <div class="plan-price">29.99 PLN<span>/mies.</span></div>
+                        <ul>
+                            <li>Bez limitu rund</li>
+                            <li>Bez limitu sesji</li>
+                            <li>7 dni za darmo</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="register-form-wrapper">
+                <form class="register-form" id="registerForm">
+                    <h3>Zarejestruj się</h3>
+                    <div class="form-group">
+                        <label for="reg-username">Nazwa użytkownika</label>
+                        <input type="text" id="reg-username" placeholder="np. rybak_pro" required minlength="3">
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-email">Email</label>
+                        <input type="email" id="reg-email" placeholder="twoj@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password">Hasło</label>
+                        <input type="password" id="reg-password" placeholder="Min. 4 znaki" required minlength="4">
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-confirm">Powtórz hasło</label>
+                        <input type="password" id="reg-confirm" placeholder="Powtórz hasło" required>
+                    </div>
+                    <div class="form-message" id="formMessage"></div>
+                    <button type="submit" class="btn btn-primary btn-full">Stwórz konto</button>
+                    <p class="form-note">Rejestrując się akceptujesz regulamin serwisu.</p>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <span class="nav-logo">&#x1F41F; BeSafeFish</span>
+                <p>Automatyczne łowienie ryb w Metin2 oparte na sztucznej inteligencji.</p>
+            </div>
+            <div class="footer-links">
+                <a href="#features">Funkcje</a>
+                <a href="#how-it-works">Jak działa</a>
+                <a href="#safety">Bezpieczeństwo</a>
+                <a href="#download">Pobierz</a>
+                <a href="#register">Rejestracja</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 BeSafeFish. Projekt edukacyjny.</p>
+        </div>
+    </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

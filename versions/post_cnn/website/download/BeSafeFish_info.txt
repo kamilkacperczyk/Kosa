@@ -1,0 +1,31 @@
+=======================================
+   BeSafeFish v1.0 - Plik testowy
+=======================================
+
+Dziekujemy za pobranie BeSafeFish!
+
+To jest plik probny - pelna wersja aplikacji
+zostanie udostepniona wkrotce.
+
+Co to jest BeSafeFish?
+  Automatyczny bot do lowienia ryb w Metin2
+  oparty na sieciach neuronowych (CNN).
+
+Jak dziala?
+  - Analizuje obraz ekranu w czasie rzeczywistym
+  - Rozpoznaje ryby za pomoca modelu PatchCNN
+  - Klika w odpowiednie miejsce automatycznie
+  - NIE modyfikuje plikow gry
+  - NIE odczytuje pamieci procesu
+
+Wymagania:
+  - Windows 10 / 11
+  - Konto BeSafeFish (rejestracja na stronie)
+  - Metin2 uruchomiony w oknie
+
+Kontakt:
+  Strona: besafefish.pl (wkrotce)
+
+=======================================
+  (c) 2026 BeSafeFish
+=======================================
