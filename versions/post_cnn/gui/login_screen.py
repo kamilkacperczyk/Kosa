@@ -82,7 +82,8 @@ class LoginScreen(QWidget):
 
         self._password_input = QLineEdit()
         self._password_input.setEchoMode(QLineEdit.Password)
-        self._password_input.setPlaceholderText("Wpisz haslo...")
+        self._password_input.setPlaceholderText("Wpisz haslo (min. 8 znakow)...")
+        self._password_input.setMaxLength(64)
         self._password_input.setMinimumHeight(40)
         form_layout.addWidget(self._password_input)
 
@@ -94,6 +95,7 @@ class LoginScreen(QWidget):
         self._confirm_input = QLineEdit()
         self._confirm_input.setEchoMode(QLineEdit.Password)
         self._confirm_input.setPlaceholderText("Powtorz haslo...")
+        self._confirm_input.setMaxLength(64)
         self._confirm_input.setMinimumHeight(40)
         self._confirm_input.setVisible(False)
         form_layout.addWidget(self._confirm_input)

@@ -49,8 +49,14 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
         return;
     }
 
-    if (password.length < 4) {
-        msg.textContent = 'Hasło musi mieć min. 4 znaki.';
+    if (password.length < 8) {
+        msg.textContent = 'Hasło musi mieć min. 8 znaków.';
+        msg.classList.add('error');
+        return;
+    }
+
+    if (password.length > 64) {
+        msg.textContent = 'Hasło może mieć maks. 64 znaki.';
         msg.classList.add('error');
         return;
     }

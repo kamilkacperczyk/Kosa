@@ -54,8 +54,10 @@ def register_user(username: str, email: str, password: str) -> tuple:
     """
     if len(username) < 3:
         return False, "Nazwa uzytkownika musi miec min. 3 znaki."
-    if len(password) < 4:
-        return False, "Haslo musi miec min. 4 znaki."
+    if len(password) < 8:
+        return False, "Haslo musi miec min. 8 znakow."
+    if len(password) > 64:
+        return False, "Haslo moze miec maks. 64 znaki."
     if not email:
         return False, "Podaj adres email."
 

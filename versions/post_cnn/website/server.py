@@ -63,8 +63,10 @@ def register():
         return jsonify({"ok": False, "msg": "Nazwa uzytkownika musi miec min. 3 znaki."})
     if not email:
         return jsonify({"ok": False, "msg": "Podaj adres email."})
-    if len(password) < 4:
-        return jsonify({"ok": False, "msg": "Haslo musi miec min. 4 znaki."})
+    if len(password) < 8:
+        return jsonify({"ok": False, "msg": "Haslo musi miec min. 8 znakow."})
+    if len(password) > 64:
+        return jsonify({"ok": False, "msg": "Haslo moze miec maks. 64 znaki."})
 
     source = (data.get("source") or "web").strip().lower()
     system_user_id = GUI_SYSTEM_USER_ID if source == "gui" else WEB_SYSTEM_USER_ID
