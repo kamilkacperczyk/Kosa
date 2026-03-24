@@ -1,38 +1,45 @@
 """
 Backend strony BeSafeFish - rejestracja uzytkownikow przez WEB.
 
-Uruchomienie:
+Wersja przystosowana do deployu na Render.com (lub inny hosting PaaS).
+- Nie importuje gui.db ani innych modulow z post_cnn — jest samodzielny
+- Laczy sie z baza bezposrednio przez psycopg2 + DATABASE_URL_ADMIN
+- Na Render zmienne srodowiskowe ustawiane w Dashboard (Environment)
+- Lokalnie laduje z .env (python-dotenv)
+
+Uruchomienie lokalne:
     python server.py
 
-Serwuje pliki statyczne (index.html, css, js, img)
-oraz endpoint POST /api/register do rejestracji.
+Deploy (Render/produkcja):
+    gunicorn server:app
+    Zmienne srodowiskowe: DATABASE_URL_ADMIN, WEB_SYSTEM_USER_ID
+
+Migracja na inny hosting:
+    1. Skopiuj caly folder website/
+    2. Ustaw DATABASE_URL_ADMIN (connection string Supabase Session Pooler)
+    3. Ustaw WEB_SYSTEM_USER_ID (domyslnie 7 = Rejestracja_WEB)
+    4. Zainstaluj zaleznosci z website/requirements.txt
+    5. Uruchom przez gunicorn/waitress/uwsgi
 """
 
 import os
-import sys
-
-# Dodaj katalog post_cnn do PYTHONPATH (zeby gui.db dzialalo)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if BASE_DIR not in sys.path:
-    sys.path.insert(0, BASE_DIR)
 
 import psycopg2
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 
-# Zaladuj .env z katalogu post_cnn/
-_env_path = os.path.join(BASE_DIR, ".env")
-load_dotenv(_env_path)
+# Lokalnie laduje .env, na Render zmienne sa w Environment
+load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL_ADMIN")
-WEB_SYSTEM_USER_ID = 7  # id usera "Rejestracja_WEB" w tabeli users
+WEB_SYSTEM_USER_ID = int(os.getenv("WEB_SYSTEM_USER_ID", "7"))
 
 app = Flask(__name__, static_folder=".", static_url_path="")
 
 
 def _get_connection():
     if not DATABASE_URL:
-        raise RuntimeError("Brak DATABASE_URL_ADMIN w .env")
+        raise RuntimeError("Brak DATABASE_URL_ADMIN")
     return psycopg2.connect(DATABASE_URL)
 
 

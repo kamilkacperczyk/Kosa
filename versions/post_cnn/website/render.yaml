@@ -1,0 +1,21 @@
+# Konfiguracja Render.com dla strony BeSafeFish
+# Render automatycznie wykrywa ten plik i konfiguruje serwis
+#
+# Zmienne srodowiskowe do ustawienia w Render Dashboard:
+#   DATABASE_URL_ADMIN  - connection string Supabase (Session Pooler)
+#   WEB_SYSTEM_USER_ID  - id usera Rejestracja_WEB (domyslnie 7)
+
+services:
+  - type: web
+    name: besafefish
+    runtime: python
+    rootDir: versions/post_cnn/website
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn server:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: WEB_SYSTEM_USER_ID
+        value: "7"
+      - key: DATABASE_URL_ADMIN
+        sync: false  # ustawic recznie w Dashboard (sekret)
