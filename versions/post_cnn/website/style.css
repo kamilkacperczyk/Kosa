@@ -843,6 +843,13 @@ body {
     color: var(--text-dim);
 }
 
+.download-note {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 12px;
+    line-height: 1.5;
+}
+
 /* ===== REGISTER ===== */
 .register {
     padding: 100px 0;
