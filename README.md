@@ -57,7 +57,7 @@ Wynik: `dist/BeSafeFish/` - spakuj jako .zip i wrzuc do GitHub Releases.
 
 ## Baza danych
 
-PostgreSQL na Supabase. 6 tabel: users, subscription_plans, user_subscriptions, payments, login_history, audit_log.
+PostgreSQL na Supabase. 7 tabel: users, subscription_plans, user_subscriptions, payments, daily_usage, login_history, audit_log.
 
 Szczegoly: `versions/post_cnn/docs/struktura-bazy.md`
 
