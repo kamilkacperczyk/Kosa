@@ -1,6 +1,7 @@
 -- Funkcja: create_user_short
 -- Opis: Szybkie tworzenie uzytkownika (login, email, haslo, rola)
 -- Dla admina automatycznie tworzy role PostgreSQL z CREATEDB + pelne GRANT na public
+-- Dla usera automatycznie przypisuje darmowy plan subskrypcyjny
 -- created_by: najpierw sprawdza app.current_user_id, potem session_user (nazwa roli PG)
 -- SECURITY DEFINER: tak (potrzebne do INSERT z hashowaniem i CREATE ROLE)
 --
@@ -49,6 +50,11 @@ BEGIN
             DELETE FROM users WHERE id = v_new_id;
             RAISE EXCEPTION 'Nie udalo sie utworzyc roli PG dla admina %: %', p_login, SQLERRM;
         END;
+    END IF;
+
+    -- Dla zwyklych userow: przypisz darmowy plan subskrypcyjny
+    IF p_role = 'user' THEN
+        PERFORM assign_free_subscription(v_new_id);
     END IF;
 
     RETURN v_new_id;

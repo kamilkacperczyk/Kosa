@@ -220,4 +220,64 @@ QCheckBox::indicator:checked {
     background-color: #1b998b;
     border-color: #17b890;
 }
+
+/* === TABS === */
+QTabWidget::pane {
+    border: 1px solid #0f3460;
+    background-color: #1a1a2e;
+}
+QTabBar::tab {
+    background-color: #16213e;
+    color: #888;
+    padding: 8px 24px;
+    border: 1px solid #0f3460;
+    border-bottom: none;
+    margin-right: 2px;
+}
+QTabBar::tab:selected {
+    background-color: #1a1a2e;
+    color: #53a8b6;
+    border-bottom: 2px solid #1b998b;
+}
+QTabBar::tab:hover:!selected {
+    color: #e0e0e0;
+    background-color: #0f3460;
+}
+
+/* === KARTA SUBSKRYPCJI === */
+QFrame#subscriptionCard {
+    background-color: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+/* === TABELA (historia platnosci) === */
+QTableWidget {
+    background-color: #0d1117;
+    border: 1px solid #21262d;
+    gridline-color: #21262d;
+    font-size: 12px;
+}
+QTableWidget::item {
+    padding: 4px 8px;
+    color: #c9d1d9;
+}
+QTableWidget::item:selected {
+    background-color: #1b998b;
+}
+QHeaderView::section {
+    background-color: #16213e;
+    color: #53a8b6;
+    border: 1px solid #0f3460;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* === SCROLLAREA === */
+QScrollArea {
+    border: none;
+    background-color: transparent;
+}
 """

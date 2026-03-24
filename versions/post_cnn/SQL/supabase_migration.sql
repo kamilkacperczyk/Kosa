@@ -383,6 +383,78 @@ COMMENT ON COLUMN public.audit_log.created_at IS 'Data zmiany';
 -- 5. FUNKCJE BIZNESOWE
 -- ============================================================
 
+-- assign_free_subscription (musi byc przed create_user_short i check_user_subscription)
+CREATE OR REPLACE FUNCTION public.assign_free_subscription(
+    p_user_id integer
+)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+    v_plan_id INTEGER;
+    v_new_id INTEGER;
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM user_subscriptions
+        WHERE user_id = p_user_id
+          AND status IN ('active', 'trialing')
+    ) THEN
+        RETURN NULL;
+    END IF;
+
+    SELECT id INTO v_plan_id FROM subscription_plans WHERE slug = 'darmowy' AND is_active = true;
+    IF v_plan_id IS NULL THEN
+        RAISE EXCEPTION 'Nie znaleziono aktywnego planu darmowego (slug=darmowy)';
+    END IF;
+
+    INSERT INTO user_subscriptions (user_id, plan_id, status, current_period_start, current_period_end, auto_renew)
+    VALUES (p_user_id, v_plan_id, 'active', now(), NULL, false)
+    RETURNING id INTO v_new_id;
+
+    RETURN v_new_id;
+END;
+$$;
+
+COMMENT ON FUNCTION public.assign_free_subscription IS 'Przypisuje darmowy plan uzytkownikowi. Jesli user juz ma aktywna subskrypcje - nie robi nic';
+
+-- expire_and_fallback_to_free (musi byc przed check_user_subscription)
+CREATE OR REPLACE FUNCTION public.expire_and_fallback_to_free(
+    p_user_id integer
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+    v_expired_id INTEGER;
+BEGIN
+    SELECT id INTO v_expired_id
+    FROM user_subscriptions
+    WHERE user_id = p_user_id
+      AND status IN ('active', 'trialing')
+      AND current_period_end IS NOT NULL
+      AND current_period_end < now()
+    LIMIT 1;
+
+    IF v_expired_id IS NULL THEN
+        RETURN false;
+    END IF;
+
+    UPDATE user_subscriptions
+    SET status = 'expired'
+    WHERE id = v_expired_id;
+
+    PERFORM assign_free_subscription(p_user_id);
+
+    RETURN true;
+END;
+$$;
+
+COMMENT ON FUNCTION public.expire_and_fallback_to_free IS 'Lazy expiration: wygasza przeterminowane subskrypcje i przypisuje darmowy plan';
+
 -- create_user_short
 CREATE OR REPLACE FUNCTION public.create_user_short(
     p_login character varying,
@@ -427,11 +499,16 @@ BEGIN
         END;
     END IF;
 
+    -- Dla zwyklych userow: przypisz darmowy plan subskrypcyjny
+    IF p_role = 'user' THEN
+        PERFORM assign_free_subscription(v_new_id);
+    END IF;
+
     RETURN v_new_id;
 END;
 $$;
 
-COMMENT ON FUNCTION public.create_user_short IS 'Tworzenie uzytkownika BeSafeFish (login, email, haslo, rola). Dla admina tworzy role PG z CREATEDB + pelne GRANT na public';
+COMMENT ON FUNCTION public.create_user_short IS 'Tworzenie uzytkownika BeSafeFish (login, email, haslo, rola). Dla admina tworzy role PG + GRANT. Dla usera przypisuje darmowy plan';
 
 -- create_user_long
 CREATE OR REPLACE FUNCTION public.create_user_long(
@@ -546,6 +623,9 @@ BEGIN
         RETURN QUERY SELECT TRUE, 'Admin'::VARCHAR, '{"full_access": true}'::JSONB, NULL::TIMESTAMPTZ;
         RETURN;
     END IF;
+
+    -- Lazy expiration: wygasz przeterminowane premium i nadaj darmowy
+    PERFORM expire_and_fallback_to_free(p_user_id);
 
     RETURN QUERY
     SELECT TRUE, sp.name, sp.features, us.current_period_end

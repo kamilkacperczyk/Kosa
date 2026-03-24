@@ -47,8 +47,8 @@ class BeSafeFishApp(QMainWindow):
         # Start na ekranie logowania
         self._stack.setCurrentWidget(self._login_screen)
 
-    @Slot(str)
-    def _on_login(self, username: str):
+    @Slot(str, int, object)
+    def _on_login(self, username: str, user_id: int, subscription: object):
         """Zalogowano — przejdz na dashboard."""
         # Usun stary dashboard (jesli relogi)
         if self._dashboard:
@@ -56,7 +56,7 @@ class BeSafeFishApp(QMainWindow):
             self._dashboard.cleanup()
             self._dashboard.deleteLater()
 
-        self._dashboard = Dashboard(username)
+        self._dashboard = Dashboard(username, user_id, subscription)
         self._dashboard.logout_requested.connect(self._on_logout)
         self._stack.addWidget(self._dashboard)
         self._stack.setCurrentWidget(self._dashboard)

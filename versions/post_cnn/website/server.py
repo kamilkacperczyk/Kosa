@@ -25,6 +25,7 @@ Migracja na inny hosting:
 import os
 
 import psycopg2
+import psycopg2.extras
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 
@@ -118,13 +119,35 @@ def login():
             (username, password),
         )
         row = cur.fetchone()
+
+        if not row:
+            cur.close()
+            conn.close()
+            return jsonify({"ok": False, "msg": "Nieprawidlowa nazwa uzytkownika lub haslo."})
+
+        user_id = row[0]
+
+        # Pobierz dane subskrypcji (z lazy expiration)
+        cur.execute("SELECT * FROM check_user_subscription(%s)", (user_id,))
+        sub_row = cur.fetchone()
         cur.close()
         conn.close()
 
-        if row:
-            return jsonify({"ok": True, "msg": "Zalogowano pomyslnie"})
-        else:
-            return jsonify({"ok": False, "msg": "Nieprawidlowa nazwa uzytkownika lub haslo."})
+        subscription = None
+        if sub_row:
+            subscription = {
+                "has_active": sub_row[0],
+                "plan_name": sub_row[1],
+                "features": sub_row[2],
+                "expires_at": sub_row[3].isoformat() if sub_row[3] else None,
+            }
+
+        return jsonify({
+            "ok": True,
+            "msg": "Zalogowano pomyslnie",
+            "user_id": user_id,
+            "subscription": subscription,
+        })
     except Exception as e:
         return jsonify({"ok": False, "msg": f"Blad logowania: {e}"}), 500
 
@@ -141,6 +164,101 @@ def health():
         return jsonify({"ok": True})
     except Exception:
         return jsonify({"ok": False}), 500
+
+
+@app.route("/api/subscription/<int:user_id>", methods=["GET"])
+def get_subscription(user_id):
+    """Pobiera aktualna subskrypcje usera (z lazy expiration)."""
+    try:
+        conn = _get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM check_user_subscription(%s)", (user_id,))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        subscription = None
+        if row:
+            subscription = {
+                "has_active": row[0],
+                "plan_name": row[1],
+                "features": row[2],
+                "expires_at": row[3].isoformat() if row[3] else None,
+            }
+
+        return jsonify({"ok": True, "subscription": subscription})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": f"Blad: {e}"}), 500
+
+
+@app.route("/api/payments/<int:user_id>", methods=["GET"])
+def get_payments(user_id):
+    """Pobiera historie platnosci usera."""
+    try:
+        conn = _get_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("""
+            SELECT p.amount, p.currency, p.status, p.description,
+                   p.paid_at, p.created_at, sp.name as plan_name
+            FROM payments p
+            LEFT JOIN user_subscriptions us ON us.id = p.subscription_id
+            LEFT JOIN subscription_plans sp ON sp.id = us.plan_id
+            WHERE p.user_id = %s
+            ORDER BY p.created_at DESC
+            LIMIT 50
+        """, (user_id,))
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        payments = []
+        for r in rows:
+            payments.append({
+                "amount": str(r["amount"]),
+                "currency": r["currency"].strip(),
+                "status": r["status"],
+                "description": r["description"],
+                "paid_at": r["paid_at"].isoformat() if r["paid_at"] else None,
+                "created_at": r["created_at"].isoformat(),
+                "plan_name": r["plan_name"],
+            })
+
+        return jsonify({"ok": True, "payments": payments})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": f"Blad: {e}"}), 500
+
+
+@app.route("/api/plans", methods=["GET"])
+def get_plans():
+    """Pobiera liste dostepnych planow subskrypcyjnych."""
+    try:
+        conn = _get_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("""
+            SELECT name, slug, description, price, currency, billing_period, features
+            FROM subscription_plans
+            WHERE is_active = true
+            ORDER BY sort_order
+        """)
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        plans = []
+        for r in rows:
+            plans.append({
+                "name": r["name"],
+                "slug": r["slug"],
+                "description": r["description"],
+                "price": str(r["price"]),
+                "currency": r["currency"].strip(),
+                "billing_period": r["billing_period"],
+                "features": r["features"],
+            })
+
+        return jsonify({"ok": True, "plans": plans})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": f"Blad: {e}"}), 500
 
 
 if __name__ == "__main__":

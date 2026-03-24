@@ -7,17 +7,19 @@ Funkcje:
     - Status: Gotowy / Dziala / Blad
     - Statystyki: liczba rund
     - Opcja: PatchCNN on/off
+    - Zakladka Subskrypcja: aktualny plan, porownanie, historia platnosci
 """
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QPlainTextEdit, QFrame, QSpacerItem, QSizePolicy,
-    QCheckBox,
+    QCheckBox, QTabWidget,
 )
 from PySide6.QtCore import Signal, Qt, Slot
 from PySide6.QtGui import QTextCursor
 
 from gui.bot_worker import BotWorker
+from gui.subscription_tab import SubscriptionTab
 
 
 class Dashboard(QWidget):
@@ -25,9 +27,11 @@ class Dashboard(QWidget):
 
     logout_requested = Signal()
 
-    def __init__(self, username: str):
+    def __init__(self, username: str, user_id: int, subscription: dict):
         super().__init__()
         self._username = username
+        self._user_id = user_id
+        self._subscription = subscription
         self._worker = None
         self._is_running = False
         self._round_count = 0
@@ -64,6 +68,27 @@ class Dashboard(QWidget):
         sep.setObjectName("separator")
         sep.setFrameShape(QFrame.HLine)
         layout.addWidget(sep)
+
+        # === TABS ===
+        self._tabs = QTabWidget()
+        self._tabs.setObjectName("mainTabs")
+
+        # Tab 1: Bot
+        bot_tab = QWidget()
+        self._setup_bot_tab(bot_tab)
+        self._tabs.addTab(bot_tab, "Bot")
+
+        # Tab 2: Subskrypcja
+        self._subscription_tab = SubscriptionTab(self._user_id, self._subscription)
+        self._tabs.addTab(self._subscription_tab, "Subskrypcja")
+
+        layout.addWidget(self._tabs, stretch=1)
+
+    def _setup_bot_tab(self, tab: QWidget):
+        """Zawartosc zakladki Bot (status, start/stop, log)."""
+        layout = QVBoxLayout(tab)
+        layout.setSpacing(10)
+        layout.setContentsMargins(0, 8, 0, 0)
 
         # === STATUS ===
         status_row = QHBoxLayout()
@@ -120,7 +145,7 @@ class Dashboard(QWidget):
 
         self._log_area = QPlainTextEdit()
         self._log_area.setReadOnly(True)
-        self._log_area.setMaximumBlockCount(500)  # max 500 linii
+        self._log_area.setMaximumBlockCount(500)
         layout.addWidget(self._log_area, stretch=1)
 
         # === FOOTER ===
@@ -190,12 +215,10 @@ class Dashboard(QWidget):
         """Dodaje wiadomosc do loga z auto-scrollem."""
         self._log_area.appendPlainText(msg)
 
-        # Auto-scroll na dol
         cursor = self._log_area.textCursor()
         cursor.movePosition(QTextCursor.End)
         self._log_area.setTextCursor(cursor)
 
-        # Parsuj numer rundy z logu
         if "RUNDA " in msg:
             try:
                 num = int(msg.split("RUNDA ")[1].split()[0])

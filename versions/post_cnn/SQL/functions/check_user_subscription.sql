@@ -3,6 +3,7 @@
 -- Admin = pelny dostep bez subskrypcji (full_access: true, brak daty wygasniecia)
 -- User = sprawdza aktywna subskrypcje w user_subscriptions
 -- Darmowy plan (current_period_end = NULL) = nigdy nie wygasa
+-- Lazy expiration: automatycznie wygasza premium po dacie i nadaje darmowy plan
 --
 -- Uzycie:
 --   SELECT * FROM check_user_subscription(2);  -- sprawdz usera o id=2
@@ -27,6 +28,9 @@ BEGIN
         RETURN QUERY SELECT TRUE, 'Admin'::VARCHAR, '{"full_access": true}'::JSONB, NULL::TIMESTAMPTZ;
         RETURN;
     END IF;
+
+    -- Lazy expiration: wygasz przeterminowane premium i nadaj darmowy
+    PERFORM expire_and_fallback_to_free(p_user_id);
 
     RETURN QUERY
     SELECT TRUE, sp.name, sp.features, us.current_period_end

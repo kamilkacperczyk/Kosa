@@ -17,7 +17,7 @@ from gui.db import authenticate_user, register_user, init_db
 class LoginScreen(QWidget):
     """Ekran logowania z mozliwoscia rejestracji."""
 
-    login_success = Signal(str)  # emituje username po zalogowaniu
+    login_success = Signal(str, int, object)  # username, user_id, subscription_data
 
     def __init__(self):
         super().__init__()
@@ -194,9 +194,9 @@ class LoginScreen(QWidget):
             else:
                 self._show_error(msg)
         else:
-            ok, msg = authenticate_user(username, password)
+            ok, msg, user_id, subscription = authenticate_user(username, password)
             if ok:
-                self.login_success.emit(username)
+                self.login_success.emit(username, user_id, subscription)
             else:
                 self._show_error(msg)
 

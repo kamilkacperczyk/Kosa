@@ -75,10 +75,30 @@ def authenticate_user(username: str, password: str) -> tuple:
     Loguje uzytkownika przez API serwera.
 
     Returns:
-        (success: bool, message: str)
+        (success: bool, message: str, user_id: int|None, subscription: dict|None)
     """
     result = _api_request("/api/login", {
         "username": username,
         "password": password,
     })
-    return result.get("ok", False), result.get("msg", "Nieznany blad")
+    return (
+        result.get("ok", False),
+        result.get("msg", "Nieznany blad"),
+        result.get("user_id"),
+        result.get("subscription"),
+    )
+
+
+def get_subscription(user_id: int) -> dict:
+    """Pobiera aktualna subskrypcje usera."""
+    return _api_request(f"/api/subscription/{user_id}")
+
+
+def get_payments(user_id: int) -> dict:
+    """Pobiera historie platnosci usera."""
+    return _api_request(f"/api/payments/{user_id}")
+
+
+def get_plans() -> dict:
+    """Pobiera liste dostepnych planow."""
+    return _api_request("/api/plans")
