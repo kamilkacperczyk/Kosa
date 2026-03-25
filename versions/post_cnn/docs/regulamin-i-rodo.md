@@ -143,9 +143,16 @@ Pierwszy IP w lancuchu = prawdziwy IP klienta.
 - **Zalety:** czytelniejsza struktura, latwiej linkować
 - **Wady:** wiecej kodu
 
-### GUI desktopowe
-- Checkbox z tekstem (bez linka) - regulamin jest na stronie WWW
-- Alternatywa: dodac przycisk "Przeczytaj regulamin" otwierajacy strone w przegladarce
+### GUI desktopowe (sprawdzone - QDialog)
+**NIGDY nie umieszczaj regulaminu inline w formularzu** - jest za maly, nieczytelny.
+
+Sprawdzony wzorzec:
+1. Przycisk "Przeczytaj regulamin" w formularzu rejestracji
+2. Klik otwiera osobne okno dialogowe (QDialog, modal, min 560x500px)
+3. QTextBrowser z pelnym HTML regulaminu
+4. Uzytkownik musi przewinac do konca zeby odblokowac przycisk "Akceptuje"
+5. Po akceptacji przycisk zmienia tekst na "Regulamin zaakceptowany" (zielony)
+6. Proba rejestracji bez akceptacji -> blad + automatyczne otwarcie dialogu
 
 ---
 
