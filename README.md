@@ -3,7 +3,7 @@
 Bot do automatycznego lowienia ryb w mini-grze Metin2. Odczytuje ekran, rozpoznaje stan gry i symuluje klikniecia.
 
 - Strona WWW: https://kosa-h283.onrender.com
-- Pobranie .exe: [GitHub Releases](https://github.com/kamilkacperczyk-on/Kosa/releases/latest)
+- Pobranie .exe: [GitHub Releases](https://github.com/kamilkacperczyk/Kosa/releases/latest)
 
 ## Jak dziala
 
