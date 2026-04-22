@@ -1,4 +1,4 @@
-# Instrukcje dla AI — projekt Kosa (BeSafeFish)
+# Instrukcje dla AI — projekt (BeSafeFish)
 
 ## Dokumentacja projektu
 
