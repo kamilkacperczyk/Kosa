@@ -292,6 +292,9 @@ class SubscriptionTab(QWidget):
             if item.widget():
                 item.widget().deleteLater()
 
+        # Plan Premium nie jest aktualnie oferowany w aplikacji desktopowej
+        plans = [p for p in plans if (p.get("slug") or "").lower() != "premium"]
+
         for plan in plans:
             card = self._create_plan_card(plan)
             self._plans_row.addWidget(card)
