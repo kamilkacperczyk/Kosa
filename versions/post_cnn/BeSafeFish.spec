@@ -12,6 +12,8 @@ a = Analysis(
     binaries=[],
     datas=[
         ('gui\\fish.ico', 'gui'),
+        ('gui\\assets\\mode_fish_click.png', 'gui\\assets'),
+        ('gui\\assets\\mode_bubble_space.png', 'gui\\assets'),
         ('cnn\\models\\fish_patch_cnn.onnx', 'cnn\\models'),
         ('cnn\\models\\fish_patch_cnn.onnx.data', 'cnn\\models'),
     ],
