@@ -1,4 +1,4 @@
-# Bezpieczenstwo - Kosa
+# Bezpieczenstwo - BeSafeFish
 
 ## Zasady bezpieczenstwa projektu
 
