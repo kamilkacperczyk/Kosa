@@ -9,7 +9,7 @@ services:
   - type: web
     name: besafefish
     runtime: python
-    rootDir: versions/post_cnn/website
+    rootDir: app/website
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn -c gunicorn.conf.py server:app
     envVars:
