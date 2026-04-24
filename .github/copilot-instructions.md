@@ -3,7 +3,7 @@
 ## BEZWZGLĘDNE ZAKAZY (NIGDY nie łam tych zasad)
 
 ### 1. Ograniczenie do workspace
-- Agent operuje WYŁĄCZNIE w obrębie: `C:\Users\REDACTED-USER-PATH\Desktop\Repos\Kosa\`
+- Agent operuje WYŁĄCZNIE w obrębie workspace'u repo (`BeSafeFish/`) — katalog tego repozytorium na dysku użytkownika
 - **NIGDY** nie czytaj, nie otwieraj, nie przeszukuj plików poza tym katalogiem
 - **NIGDY** nie używaj ścieżek typu `~/.ssh/`, `~/.aws/`, `~/.gnupg/`, `~/.config/`, `%USERPROFILE%/.git-credentials`
 - **NIGDY** nie nawiguj do katalogów nadrzędnych (`..`, `../../` itp.) w celu dostępu do plików poza workspace

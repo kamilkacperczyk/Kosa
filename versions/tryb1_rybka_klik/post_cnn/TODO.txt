@@ -1,4 +1,10 @@
 ================================================================================
+  UWAGA: Ten TODO pochodzi sprzed restrukturyzacji repo (2026-04-24).
+  Wymaga analizy — sciezki, numeracja i priorytety moga byc nieaktualne.
+  Po zweryfikowaniu — ta sekcja do usuniecia.
+================================================================================
+
+================================================================================
   TODO — WERSJA POST CNN
   Ostatnia aktualizacja: 2026-03-17
 ================================================================================

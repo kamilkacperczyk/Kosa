@@ -6,11 +6,14 @@ Przed wprowadzaniem zmian przeczytaj odpowiedni plik:
 
 | Plik | Temat | Czytaj gdy... |
 |------|-------|---------------|
-| `versions/post_cnn/docs/deployment-i-architektura.md` | Endpointy API, serwer, gunicorn, Render, PyInstaller | ...pracujesz nad server.py, deploymentem, .exe |
-| `versions/post_cnn/docs/struktura-bazy.md` | Tabele, funkcje SQL, diagram, przeplywy biznesowe | ...pracujesz nad SQL, dodajesz tabele/funkcje |
-| `versions/post_cnn/docs/zasady-sql.md` | Konwencje nazewnictwa, checklist zmian w bazie, zapytania diagnostyczne | ...zmieniasz kolumne/tabele/funkcje/enum w SQL |
-| `versions/post_cnn/cnn/ARCHITEKTURA_CNN.md` | Model PatchCNN, trening, inference, ONNX | ...pracujesz nad CNN/modelem |
-| `versions/post_cnn/docs/regulamin-i-rodo.md` | Regulamin, RODO, checkbox akceptacji, retencja danych | ...dodajesz rejestracje, zbierasz dane osobowe, IP |
+| `app/docs/deployment-i-architektura.md` | Endpointy API, serwer, gunicorn, Render, PyInstaller | ...pracujesz nad server.py, deploymentem, .exe |
+| `app/docs/struktura-bazy.md` | Tabele, funkcje SQL, diagram, przeplywy biznesowe | ...pracujesz nad SQL, dodajesz tabele/funkcje |
+| `app/docs/zasady-sql.md` | Konwencje nazewnictwa, checklist zmian w bazie, zapytania diagnostyczne | ...zmieniasz kolumne/tabele/funkcje/enum w SQL |
+| `app/docs/regulamin-i-rodo.md` | Regulamin, RODO, checkbox akceptacji, retencja danych | ...dodajesz rejestracje, zbierasz dane osobowe, IP |
+| `app/docs/historia-wersji.md` | Ewolucja bota (pre_cnn → post_cnn), co zmienilo sie i dlaczego | ...chcesz zrozumiec rozniace miedzy wariantami bota |
+| `versions/tryb1_rybka_klik/README.md` | Opis trybu rybka-klik i jego wariantow | ...pracujesz nad trybem 1 (lowienie rybki) |
+| `versions/tryb1_rybka_klik/post_cnn/README.md` | Szczegoly wariantu post_cnn (pipeline detekcji, PatchCNN) | ...modyfikujesz kod bota z CNN |
+| `versions/tryb1_rybka_klik/post_cnn/cnn/ARCHITEKTURA_CNN.md` | Model PatchCNN, trening, inference, ONNX | ...pracujesz nad CNN/modelem |
 | `SECURITY.md` | Zasady bezpieczenstwa | ...dotykasz auth, hasel, connection stringow |
 
 **WAZNE**: Po dodaniu tabeli, funkcji SQL lub endpointu API — zaktualizuj odpowiedni plik docs!

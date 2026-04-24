@@ -21,7 +21,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from src.fishing_detector import FishingDetector
 from src.config import CIRCLE_CENTER_X, CIRCLE_CENTER_Y, CIRCLE_RADIUS
 
-BASE = Path(r'C:\Users\REDACTED-USER-PATH\Desktop\Repos\Kosa')
+# Root repo (BeSafeFish) wyliczany ze sciezki tego pliku —
+# dziala niezaleznie od lokalizacji checkoutu na dysku.
+# Ten plik: <repo>/versions/tryb1_rybka_klik/post_cnn/cnn/collect_fish_frames.py
+BASE = Path(__file__).resolve().parents[4]
 OUTPUT = BASE / 'rybki_do_oceny'
 SHAPES_DIR = OUTPUT / 'fish_shapes'  # tu user wklei wyciety ksztalt
 

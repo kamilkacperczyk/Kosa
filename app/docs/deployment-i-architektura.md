@@ -81,19 +81,23 @@
 
 ## Migracja na inny hosting
 
-1. Skopiuj folder `versions/post_cnn/website/` na nowy serwer
+1. Skopiuj folder `app/website/` na nowy serwer
 2. `pip install -r requirements.txt`
 3. Ustaw zmienne: `DATABASE_URL_ADMIN`, `WEB_SYSTEM_USER_ID`, `GUI_SYSTEM_USER_ID`
 4. Uruchom: `gunicorn -c gunicorn.conf.py server:app` (Linux) lub `waitress-serve server:app` (Windows)
-5. **WAZNE**: zaktualizuj `API_URL` w `gui/db.py` na nowy adres serwera
+5. **WAZNE**: zaktualizuj `API_URL` w `app/gui/db.py` na nowy adres serwera
 6. Przebuduj .exe i wrzuc nowy release na GitHub
 
 ## Budowanie .exe (PyInstaller)
 
+Z rootu repo:
+
 ```bash
-cd versions/post_cnn
-py -m PyInstaller BeSafeFish.spec -y
+py -m PyInstaller app/BeSafeFish.spec -y
 ```
+
+Output: `dist/BeSafeFish/BeSafeFish.exe`. Spec zaklada sciezki wzgledem rootu
+repo, nie wzgledem `app/` (datas siegaja do `versions/tryb1_rybka_klik/post_cnn/cnn/models/`).
 
 - `onedir` — folder, nie jeden plik (mniejszy, szybciej sie uruchamia)
 - `uac_admin=True` — Windows wymaga Administratora
@@ -110,7 +114,7 @@ py -m PyInstaller BeSafeFish.spec -y
 ```bash
 # Wymien asset w istniejacym release
 gh release delete-asset v1.2.0 BeSafeFish.zip --yes
-gh release upload v1.2.0 "versions/post_cnn/dist/BeSafeFish.zip" --clobber
+gh release upload v1.2.0 "dist/BeSafeFish.zip" --clobber
 ```
 
 ## Wazne zasady

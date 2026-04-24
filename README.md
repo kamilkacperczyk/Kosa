@@ -25,32 +25,38 @@ Aplikacja .exe NIE laczy sie bezposrednio z baza - komunikuje sie przez API serw
 ## Struktura repo
 
 ```
+app/                      -- Wszystko co nad trybami (GUI, website, baza, docs)
+  besafefish.py           -- Entry point GUI
+  BeSafeFish.spec         -- Konfiguracja PyInstaller
+  gui/                    -- GUI PySide6 (login, rejestracja, dashboard)
+  website/                -- Strona WWW + Flask backend (server.py, render.yaml)
+  SQL/                    -- Definicje tabel i funkcji PostgreSQL
+  docs/                   -- Dokumentacja projektu
+
 versions/
-  pre_cnn/              -- Starsza wersja (klasyczne CV, bez CNN)
-  post_cnn/             -- Aktualna wersja
-    src/                -- Bot: przechwytywanie ekranu, detekcja, klikanie
-    cnn/                -- Modele CNN (PatchCNN, FishNet), trening, inferencja
-    gui/                -- GUI PySide6 (login, rejestracja, dashboard)
-    website/            -- Strona WWW + Flask backend (server.py)
-    docs/               -- Dokumentacja (deployment, struktura bazy, architektura CNN)
-    SQL/                -- Definicje tabel i funkcji PostgreSQL
-    BeSafeFish.spec     -- Konfiguracja PyInstaller
-    besafefish.py       -- Entry point GUI
+  tryb1_rybka_klik/       -- Tryb 1: "Mini-gra łowienie ryb (rybka - klik)"
+    README.md             -- Opis trybu i jego wariantow
+    tests/                -- Analizy, kalibracja, diagnostyka, walidacja
+    post_cnn/             -- Aktywny wariant (klasyczny CV + PatchCNN ONNX)
+    pre_cnn/              -- Archiwum (sam klasyczny CV, bez CNN)
+  tryb2_dymek_spacja/     -- (Planowany) Tryb 2: "Mini-gra spacja (dymek z cyfrą)"
 ```
 
 ## Uruchomienie (deweloper)
 
+Z rootu repo:
+
 ```bash
-cd versions/post_cnn
 pip install -r requirements.txt
-py besafefish.py
+py app/besafefish.py
 ```
 
 ## Budowanie .exe
 
+Z rootu repo:
+
 ```bash
-cd versions/post_cnn
-py -m PyInstaller BeSafeFish.spec --clean -y
+py -m PyInstaller app/BeSafeFish.spec --clean -y
 ```
 
 Wynik: `dist/BeSafeFish/` - spakuj jako .zip i wrzuc do GitHub Releases.
@@ -59,13 +65,14 @@ Wynik: `dist/BeSafeFish/` - spakuj jako .zip i wrzuc do GitHub Releases.
 
 PostgreSQL na Supabase. 7 tabel: users, subscription_plans, user_subscriptions, payments, daily_usage, login_history, audit_log.
 
-Szczegoly: `versions/post_cnn/docs/struktura-bazy.md`
+Szczegoly: `app/docs/struktura-bazy.md`
 
 ## Dokumentacja
 
 | Plik | Opis |
 |------|------|
-| `versions/post_cnn/docs/deployment-i-architektura.md` | Architektura, API, Render, PyInstaller, migracja |
-| `versions/post_cnn/docs/struktura-bazy.md` | Diagram zaleznosci tabel, funkcje, triggery |
-| `versions/post_cnn/cnn/ARCHITEKTURA_CNN.md` | Architektura sieci CNN, pipeline treningowy |
+| `app/docs/deployment-i-architektura.md` | Architektura, API, Render, PyInstaller, migracja |
+| `app/docs/struktura-bazy.md` | Diagram zaleznosci tabel, funkcje, triggery |
+| `app/docs/historia-wersji.md` | Ewolucja bota (pre_cnn → post_cnn), co sie zmienilo |
+| `versions/tryb1_rybka_klik/post_cnn/cnn/ARCHITEKTURA_CNN.md` | Architektura sieci CNN, pipeline treningowy |
 | `SECURITY.md` | Polityka bezpieczenstwa, pre-commit hook |
