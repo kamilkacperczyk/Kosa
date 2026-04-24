@@ -1,20 +1,24 @@
 """
-Launcher bota Kosa - wybiera wersje i uruchamia.
+Launcher bota - wybiera tryb/wariant i uruchamia.
 
-Kazda wersja to osobny folder w versions/ z wlasnym src/.
-Launcher dodaje wybrany folder do sys.path, dzieki czemu
-importy 'from src.X import Y' dzialaja poprawnie.
+Struktura katalogow po restrukturyzacji:
+  versions/<tryb>/<wariant>/src/bot.py
+
+  gdzie <tryb>    = np. tryb1_rybka_klik, tryb2_dymek_spacja
+        <wariant> = np. post_cnn, pre_cnn
+
+Launcher skanuje wszystkie kombinacje <tryb>/<wariant> (te, ktore maja src/)
+i dodaje wybrana sciezke do sys.path, dzieki czemu 'from src.X import Y'
+dziala poprawnie.
 
 Uzycie:
-  python run.py                          # menu wyboru wersji
-  python run.py --version pre_cnn        # bezposredni wybor
-  python run.py --version post_cnn --debug  # CNN z podgladem
-  python run.py --version post_cnn --no-cnn # klasyczna detekcja (fallback)
+  py run.py                                          # menu wyboru
+  py run.py --version tryb1_rybka_klik/post_cnn      # bezposredni wybor
+  py run.py --version tryb1_rybka_klik/post_cnn --debug
+  py run.py --version tryb1_rybka_klik/post_cnn --no-cnn
 
-Tworzenie nowej wersji:
-  1. Skopiuj istniejacy folder: versions/pre_cnn/ -> versions/nowa/
-  2. Modyfikuj pliki w versions/nowa/src/
-  3. Uruchom: python run.py --version nowa --debug
+Identyfikator wariantu to relatywna sciezka <tryb>/<wariant> wzgledem
+katalogu versions/.
 """
 
 import sys
@@ -28,31 +32,50 @@ def _get_versions_dir():
 
 
 def get_versions():
-    """Skanuje versions/ i zwraca liste dostepnych wersji (majacych src/)."""
+    """Skanuje versions/<tryb>/<wariant>/ i zwraca liste dostepnych wariantow.
+
+    Zwraca posortowana liste identyfikatorow w formacie '<tryb>/<wariant>'
+    (np. 'tryb1_rybka_klik/post_cnn'), kazdy z istniejacym podfolderem src/.
+    """
     versions_dir = _get_versions_dir()
     if not os.path.isdir(versions_dir):
         return []
-    return sorted([
-        d for d in os.listdir(versions_dir)
-        if os.path.isdir(os.path.join(versions_dir, d))
-        and os.path.isdir(os.path.join(versions_dir, d, "src"))
-    ])
+    variants = []
+    for tryb in sorted(os.listdir(versions_dir)):
+        tryb_path = os.path.join(versions_dir, tryb)
+        if not os.path.isdir(tryb_path):
+            continue
+        for wariant in sorted(os.listdir(tryb_path)):
+            wariant_path = os.path.join(tryb_path, wariant)
+            if os.path.isdir(wariant_path) and os.path.isdir(os.path.join(wariant_path, "src")):
+                # normalizuj separator do '/' zeby argument CLI byl platform-agnostic
+                variants.append(f"{tryb}/{wariant}")
+    return variants
 
 
 def _read_version_desc(version_name):
-    """Probuje odczytac krotki opis z OPIS_WERSJI.txt."""
-    opis_path = os.path.join(_get_versions_dir(), version_name, "OPIS_WERSJI.txt")
-    if not os.path.isfile(opis_path):
-        return ""
-    try:
-        with open(opis_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                # Pomiń puste linie i nagłówki (=== ... ===)
-                if line and not line.startswith("=") and not line.startswith("#"):
-                    return line[:80]
-    except OSError:
-        pass
+    """Probuje odczytac krotki opis wariantu.
+
+    Szuka po kolei:
+    - `versions/<tryb>/<wariant>/README.md` (pierwsza linia niebedaca naglowkiem)
+    - `versions/<tryb>/<wariant>/OPIS_WERSJI.txt` (legacy, dla zgodnosci)
+    """
+    base = os.path.join(_get_versions_dir(), *version_name.split("/"))
+    candidates = [
+        (os.path.join(base, "README.md"), ("#", "=")),
+        (os.path.join(base, "OPIS_WERSJI.txt"), ("=", "#")),
+    ]
+    for path, skip_prefixes in candidates:
+        if not os.path.isfile(path):
+            continue
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith(skip_prefixes):
+                        return line[:80]
+        except OSError:
+            continue
     return ""
 
 
@@ -80,11 +103,11 @@ def select_version(versions):
 
 
 def main():
-    # --- Zbierz dostepne wersje ---
+    # --- Zbierz dostepne warianty ---
     versions = get_versions()
     if not versions:
-        print("[KOSA] Brak dostepnych wersji w folderze versions/!")
-        print("       Kazda wersja wymaga: versions/<nazwa>/src/")
+        print("[KOSA] Brak dostepnych wariantow w folderze versions/!")
+        print("       Kazdy wariant wymaga: versions/<tryb>/<wariant>/src/")
         sys.exit(1)
 
     # --- Wybor wersji: z CLI lub menu ---
@@ -92,7 +115,8 @@ def main():
     if "--version" in sys.argv:
         idx = sys.argv.index("--version")
         if idx + 1 < len(sys.argv):
-            selected = sys.argv[idx + 1]
+            # Normalizuj separator '\' -> '/' (Windows CLI moze podac backslash)
+            selected = sys.argv[idx + 1].replace("\\", "/")
             if selected not in versions:
                 print(f"[KOSA] Wersja '{selected}' nie istnieje!")
                 print(f"       Dostepne: {', '.join(versions)}")
@@ -111,8 +135,8 @@ def main():
         print("       Uruchom ponownie jako Administrator.")
         sys.exit(1)
 
-    # --- Ustaw sys.path na wybrana wersje ---
-    version_path = os.path.join(_get_versions_dir(), selected)
+    # --- Ustaw sys.path na wybrany wariant ---
+    version_path = os.path.join(_get_versions_dir(), *selected.split("/"))
     sys.path.insert(0, version_path)
 
     debug_mode = "--debug" in sys.argv
