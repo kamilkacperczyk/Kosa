@@ -163,8 +163,8 @@ class KosaBot:
                 self._log(f"[BOT] RUNDA {self.total_rounds}")
                 self._log(f"{'='*40}")
 
-                # 1. Start rundy: robak + wedka (uniwersalne dla obu minigier)
-                self.input.start_fishing_round()
+                # 1. Start rundy — tryb decyduje co zrobic (np. F4 + SPACE dla wedkarstwa)
+                self.mode.start_round()
 
                 # 2. Czekaj na minigre (delegacja do trybu)
                 if not self.mode.wait_for_start(timeout=10.0):

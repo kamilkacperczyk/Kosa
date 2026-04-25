@@ -13,7 +13,8 @@ Dlaczego nie ABC z @abstractmethod?
 Przeplyw w KosaBot.run() (uproszczony):
 
     while bot.running:
-        bot.input.start_fishing_round()         # F4 + SPACE — uniwersalne dla Metin2
+        mode.start_round()                      # tryb sam decyduje jak zaczac
+                                                # (np. F4 + SPACE dla wedkarstwa)
         if not mode.wait_for_start(timeout=10): # czeka az minigra zacznie sie
             continue
         if not mode.play_round():               # caly cykl rundy (detekcja + akcje)
@@ -32,12 +33,22 @@ class FishingMode(Protocol):
         name: czytelna nazwa do logow (np. "Mini-gra lowienie ryb")
 
     Metody:
-        wait_for_start: czeka az minigra rozpocznie sie po zarzuceniu wedki
+        start_round: wykonuje sekwencje akcji rozpoczynajaca runde
+        wait_for_start: czeka az minigra rozpocznie sie po wykonaniu start_round
         play_round: odgrywa caly cykl rundy az do jej zakonczenia
         wait_for_end: czeka az okno minigry znikinie z ekranu
     """
 
     name: str
+
+    def start_round(self) -> None:
+        """Wykonuje sekwencje akcji ktora rozpoczyna runde minigry.
+
+        Dla minigier wedkarskich w Metin2: F4 (robak) + SPACE (zarzut wedki).
+        Dla innych trybow: dowolna sekwencja (np. atak na potwora, otwarcie
+        skrzyni). Kazdy tryb implementuje swoj wlasny start.
+        """
+        ...
 
     def wait_for_start(self, timeout: float = 10.0) -> bool:
         """Czeka az minigra zacznie byc widoczna.

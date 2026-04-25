@@ -169,6 +169,10 @@ class FishClickMode:
     # KONTRAKT FishingMode
     # ------------------------------------------------------------------
 
+    def start_round(self) -> None:
+        """Robak (F4) + zarzucenie wedki (SPACE) — start klasycznego lowienia w Metin2."""
+        self._input.start_fishing_round()
+
     def wait_for_start(self, timeout: float = 10.0) -> bool:
         """Czeka az okno minigry sie pojawi (klasyczny detektor HSV)."""
         self._log("[BOT] Czekam na pojawienie sie minigry...")
