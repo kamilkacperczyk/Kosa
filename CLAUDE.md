@@ -13,6 +13,7 @@ Przed wprowadzaniem zmian przeczytaj odpowiedni plik:
 | `app/docs/historia-wersji.md` | Ewolucja bota (pre_cnn → post_cnn), co zmienilo sie i dlaczego | ...chcesz zrozumiec rozniace miedzy wariantami bota |
 | `app/docs/architektura-i-lekcje.md` | Lekcje z refaktorow (modularnosc, Strategy pattern, hardcoded paths) | ...projektujesz nowa funkcjonalnosc, decydujesz o strukturze |
 | `app/docs/build-i-release.md` | Build .exe, PyInstaller .spec, weryfikacja paczki, checklist release | ...zmieniasz .spec, robisz nowy release, paczka v1.X.Y nie dziala |
+| `app/docs/lekcje-sesja-v1.2.6.md` | Lekcje z sesji v1.2.6 - SQL nullable, Qt threading, fail-open audit, build/release | ...dotykasz auth/login, wątkowania w GUI, audit logu, schema bazy z FK |
 | `versions/tryb1_rybka_klik/README.md` | Opis trybu rybka-klik i jego wariantow | ...pracujesz nad trybem 1 (lowienie rybki) |
 | `versions/tryb1_rybka_klik/post_cnn/README.md` | Szczegoly wariantu post_cnn (pipeline detekcji, PatchCNN) | ...modyfikujesz kod bota z CNN |
 | `versions/tryb1_rybka_klik/post_cnn/cnn/ARCHITEKTURA_CNN.md` | Model PatchCNN, trening, inference, ONNX | ...pracujesz nad CNN/modelem |
