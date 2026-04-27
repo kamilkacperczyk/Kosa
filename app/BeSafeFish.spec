@@ -3,24 +3,24 @@
 # Buduje folder z programem, potem pakowany do .zip
 # Uzytkownik rozpakowuje zip, uruchamia BeSafeFish.exe jako Admin
 #
-# Build (z rootu repo): pyinstaller app/BeSafeFish.spec
+# Build (z rootu repo): py -m PyInstaller app/BeSafeFish.spec --clean -y
 # Output: dist/BeSafeFish/BeSafeFish.exe
 #
-# Uwaga: sciezki w datas/pathex sa **wzgledem katalogu z ktorego odpalasz**
-# pyinstallera (zwykle root repo), NIE wzgledem pliku .spec.
+# Uwaga: sciezki w datas/pathex sa wzgledem lokalizacji pliku .spec (czyli app/).
+# Dlatego pliki w app/ podajemy bez prefixu "app/", a pliki w versions/ przez "..\\".
 
 a = Analysis(
-    ['app\\besafefish.py'],
+    ['besafefish.py'],
     pathex=[
-        'app',
-        'versions\\tryb1_rybka_klik\\post_cnn',
+        '.',
+        '..\\versions\\tryb1_rybka_klik\\post_cnn',
     ],
     binaries=[],
     datas=[
-        ('app\\gui\\fish.ico', 'gui'),
-        ('app\\gui\\assets', 'gui\\assets'),
-        ('versions\\tryb1_rybka_klik\\post_cnn\\cnn\\models\\fish_patch_cnn.onnx', 'cnn\\models'),
-        ('versions\\tryb1_rybka_klik\\post_cnn\\cnn\\models\\fish_patch_cnn.onnx.data', 'cnn\\models'),
+        ('gui\\fish.ico', 'gui'),
+        ('gui\\assets', 'gui\\assets'),
+        ('..\\versions\\tryb1_rybka_klik\\post_cnn\\cnn\\models\\fish_patch_cnn.onnx', 'cnn\\models'),
+        ('..\\versions\\tryb1_rybka_klik\\post_cnn\\cnn\\models\\fish_patch_cnn.onnx.data', 'cnn\\models'),
     ],
     hiddenimports=[
         'PySide6.QtSvg',
@@ -50,7 +50,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['app\\gui\\fish.ico'],
+    icon=['gui\\fish.ico'],
     uac_admin=True,
 )
 
