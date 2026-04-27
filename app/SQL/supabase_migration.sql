@@ -318,7 +318,7 @@ COMMENT ON COLUMN public.payments.updated_at IS 'Data ostatniej modyfikacji (aut
 -- 4e. login_history
 CREATE TABLE public.login_history (
     id bigint NOT NULL,
-    user_id integer NOT NULL,
+    user_id integer,
     success boolean NOT NULL,
     ip_address inet,
     user_agent text,
@@ -338,7 +338,7 @@ CREATE INDEX idx_login_history_failed ON public.login_history USING btree (user_
 
 COMMENT ON TABLE public.login_history IS 'Historia logowan uzytkownikow BeSafeFish (udane i nieudane proby)';
 COMMENT ON COLUMN public.login_history.id IS 'Unikalny identyfikator wpisu (auto-increment)';
-COMMENT ON COLUMN public.login_history.user_id IS 'ID uzytkownika (FK -> users.id)';
+COMMENT ON COLUMN public.login_history.user_id IS 'ID uzytkownika (FK -> users.id). NULL gdy proba logowania na nieistniejacy login.';
 COMMENT ON COLUMN public.login_history.success IS 'Czy logowanie sie powiodlo';
 COMMENT ON COLUMN public.login_history.ip_address IS 'Adres IP';
 COMMENT ON COLUMN public.login_history.user_agent IS 'User-Agent przegladarki/aplikacji';
