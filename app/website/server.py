@@ -24,6 +24,7 @@ Migracja na inny hosting:
 """
 
 import os
+import sys
 
 import psycopg2
 import psycopg2.pool
@@ -77,6 +78,41 @@ def _teardown_request(exception):
 @app.route("/")
 def index():
     return app.send_static_file("index.html")
+
+
+def _log_login_attempt(conn, user_id, success: bool, ip_address, user_agent: str, failure_reason: str = None):
+    """Zapisuje wpis do login_history - fail-open: blad nie blokuje logowania.
+
+    INSERT moze paść z roznych powodow (np. bledny format IP w kolumnie inet,
+    przekroczony limit varchar, problem z sekwencja). W takiej sytuacji robimy
+    rollback aby polaczenie wrocilo do uzywalnego stanu, logujemy ostrzezenie
+    do stderr (Render logs), ale nie wybijamy bledu - logowanie usera ma isc
+    dalej. Audit jest best-effort, nie blocker.
+    """
+    try:
+        cur = conn.cursor()
+        if success:
+            cur.execute(
+                "INSERT INTO login_history (user_id, success, ip_address, user_agent) VALUES (%s, true, %s, %s)",
+                (user_id, ip_address, user_agent),
+            )
+        else:
+            cur.execute(
+                "INSERT INTO login_history (user_id, success, ip_address, user_agent, failure_reason) VALUES (%s, false, %s, %s, %s)",
+                (user_id, ip_address, user_agent, failure_reason),
+            )
+        conn.commit()
+        cur.close()
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        print(
+            f"[WARN] login_history insert failed (success={success}, user_id={user_id}, ip={ip_address}): {e}",
+            file=sys.stderr,
+            flush=True,
+        )
 
 
 @app.route("/api/register", methods=["POST"])
@@ -165,32 +201,20 @@ def login():
         row = cur.fetchone()
 
         if not row:
-            # Nieudane logowanie - zapisz do historii
-            failure_reason = "Nieprawidlowe haslo" if found_user_id else "Nieznany login"
-            cur.execute(
-                """
-                INSERT INTO login_history (user_id, success, ip_address, user_agent, failure_reason)
-                VALUES (%s, false, %s, %s, %s)
-                """,
-                (found_user_id, ip_address, user_agent, failure_reason),
-            )
-            conn.commit()
             cur.close()
+            # Nieudane logowanie - zapisz audit (fail-open: blad nie blokuje response)
+            failure_reason = "Nieprawidlowe haslo" if found_user_id else "Nieznany login"
+            _log_login_attempt(conn, found_user_id, False, ip_address, user_agent, failure_reason)
             return jsonify({"ok": False, "msg": "Nieprawidlowa nazwa uzytkownika lub haslo."})
 
         user_id = row[0]
+        cur.close()
 
-        # Udane logowanie - zapisz do historii
-        cur.execute(
-            """
-            INSERT INTO login_history (user_id, success, ip_address, user_agent)
-            VALUES (%s, true, %s, %s)
-            """,
-            (user_id, ip_address, user_agent),
-        )
-        conn.commit()
+        # Udane logowanie - zapisz audit (fail-open)
+        _log_login_attempt(conn, user_id, True, ip_address, user_agent)
 
         # Pobierz dane subskrypcji (z lazy expiration)
+        cur = conn.cursor()
         cur.execute("SELECT * FROM check_user_subscription(%s)", (user_id,))
         sub_row = cur.fetchone()
         cur.close()
