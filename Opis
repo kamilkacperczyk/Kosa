@@ -59,7 +59,7 @@ To podejście hybrydowe (desktopowy agent + web panel) pozwoli łatwo kontrolowa
 
 - **IDE**: VS Code (uniwersalny — obsługuje Python + przyszły web panel)
 - **AI asystent**: Claude Opus 4.6 via OpenCode (planowanie, generowanie kodu, rozwiązywanie problemów)
-- **Repozytorium**: GitHub (prywatne) — github.com/kamilkacperczyk/Kosa
+- **Repozytorium**: GitHub - github.com/kamilkacperczyk/BeSafeFish
 
 ## 6) Dokumentacja mini-gry
 

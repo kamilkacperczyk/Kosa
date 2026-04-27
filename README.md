@@ -3,7 +3,7 @@
 Asystent computer vision automatyzujacy czynnosci w grze - aplikacja desktopowa + rejestracja przez strone WWW + baza w chmurze (PySide6, Flask API, PostgreSQL, ONNX).
 
 - Strona WWW: https://kosa-h283.onrender.com
-- Pobranie .exe: [GitHub Releases](https://github.com/kamilkacperczyk/Kosa/releases/latest)
+- Pobranie .exe: [GitHub Releases](https://github.com/kamilkacperczyk/BeSafeFish/releases/latest)
 
 ## Jak dziala
 
