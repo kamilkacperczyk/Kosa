@@ -288,26 +288,67 @@ Dla **trywialnych zmian klasy 2** (literówka w stringu, drobny refactor bez zmi
 
 ## Checklist release v1.X.Y (do skopiowania)
 
+**Kluczowa zasada:** PRODUKCYJNY build ktory wrzucasz na GitHub Release musi byc
+TEN SAM build ktory przetestowales. Nie rebuilduj miedzy testem a uploadem.
+
+Aktualna sekwencja minimalizuje to ryzyko - debug build robisz PRZED produkcyjnym
+zeby najpierw sprawdzic ze kod sie kompiluje i bot startuje, dopiero potem czysty
+rebuild prod (z tych samych zrodel) -> pakowanie -> upload bez kolejnego buildu.
+
 ```
+=== PRZED BUILDEM ===
 [ ] Sklasyfikuj wszystkie zmiany do wypuszczenia (klasa 1/2/3/4 - tabela wyzej)
 [ ] Klasa 2 (server) - lokalny test Flaska + curl PRZED pushem na main
 [ ] Klasa 3 (SQL) - migracja na bazie + curl weryfikacyjny PRZED commitem aplikacji
 [ ] git push wszystkich zmian na main (Render auto-deployuje server jesli klasa 2)
 [ ] Klasa 2 - weryfikacja na produkcji (curl https://kosa-h283.onrender.com/api/...)
 [ ] Bump wersji w app/gui/dashboard.py (footer) i app/website/index.html (karta release)
+[ ] Backup .spec: cp app/BeSafeFish.spec /tmp/BeSafeFish.spec.bak
+
+=== TEST DEBUG (sprawdzic ze kod dziala) ===
+[ ] Modyfikacja .spec: console=True, uac_admin=False, name='BeSafeFish_debug' w COLLECT
 [ ] py -m PyInstaller app/BeSafeFish.spec --clean -y
-[ ] du -sh dist/BeSafeFish/ - sprawdzic czy ~290 MB
+[ ] du -sh dist/BeSafeFish_debug/ - sprawdzic czy ~290 MB
 [ ] grep "'src\." build/BeSafeFish/PYZ-00.toc - sprawdzic czy src.* jest
-[ ] Build DEBUG version (console=True, uac_admin=False, name='BeSafeFish_debug')
-[ ] Odpalic dist/BeSafeFish_debug/BeSafeFish.exe i przejsc:
-    [ ] GUI wstaje
+[ ] grep "missing module" build/BeSafeFish/warn-BeSafeFish.txt | grep -vE "Quartz|Xlib|AppKit|olefile|tkinter|matplotlib"
+    -> nic nieoczekiwanego nie powinno wyjsc
+[ ] Eksplorator Windows -> dist/BeSafeFish_debug/BeSafeFish.exe (zwykly dwuklik):
+    [ ] Czarne okno konsoli + GUI sie otwiera
     [ ] Login (poprawny) - dashboard sie laduje
-    [ ] Klik Start - bot startuje BEZ crash
-[ ] Przywrocic produkcyjny .spec
-[ ] Czysty rebuild produkcyjny (rm -rf dist build)
-[ ] Pakowanie do .zip (shutil.make_archive)
-[ ] gh release create v<X.Y.Z> dist/BeSafeFish.zip --title ... --notes ...
+    [ ] Klik Start - bot startuje BEZ crash (logi w konsoli: "[BOT] Inicjalizacja...")
+    [ ] BLAD na ktorymkolwiek z powyzszych = STOP, nie wrzucaj releasu, debug
+
+=== BUILD PRODUKCYJNY (po pomyslnym tescie) ===
+[ ] Przywroc .spec: cp /tmp/BeSafeFish.spec.bak app/BeSafeFish.spec
+[ ] Sprawdz: grep -nE "name=|console=|uac_admin=" app/BeSafeFish.spec
+    -> name='BeSafeFish' (oba razy), console=False, uac_admin=True
+[ ] rm -rf dist/BeSafeFish_debug build  (ZACHOWUJEMY oryginalny dist/BeSafeFish jesli istnial)
+[ ] py -m PyInstaller app/BeSafeFish.spec --clean -y
+[ ] du -sh dist/BeSafeFish/ - sprawdzic czy ~290 MB (powinno byc identycznie z debug)
+    -> JESLI rozmiar inny niz debug build = ALARM, cos sie zmienilo, nie wrzucaj
+
+=== PAKOWANIE I UPLOAD ===
+[ ] cd dist
+[ ] py -c "import shutil; shutil.make_archive('BeSafeFish', 'zip', '.', 'BeSafeFish')"
+[ ] ls -la BeSafeFish.zip - sprawdzic czy ~115-130 MB
+    -> JESLI rozmiar drastycznie inny niz poprzedni release = ALARM
+[ ] cd ..
+[ ] gh release create v<X.Y.Z> dist/BeSafeFish.zip --title "BeSafeFish v<X.Y.Z>" --notes "..."
     LUB: gh release upload v<X.Y.Z> dist/BeSafeFish.zip --clobber (jesli release juz istnieje)
-[ ] Aktualizacja rozmiaru w app/website/index.html
+
+=== FINALIZACJA ===
+[ ] Aktualizacja rozmiaru w app/website/index.html (faktyczny rozmiar .zip)
 [ ] Commit + push aktualizacji rozmiaru
+[ ] Pobierz .zip ze strony (https://kosa-h283.onrender.com/#download), rozpakuj,
+    odpal jako Admin - smoke test ze "swiezo pobranej" perspektywy uzytkownika
 ```
+
+### Co zrobic gdy debug test wykryje blad
+
+Nie commituj debug-mode .spec! Backup w `/tmp/BeSafeFish.spec.bak` to zabezpieczenie.
+
+1. Diagnozuj blad z konsoli debug (traceback)
+2. Napraw kod
+3. Przywroc .spec z backupu (`cp /tmp/BeSafeFish.spec.bak app/BeSafeFish.spec`)
+4. Wroc do "TEST DEBUG" sekcji checklisty - powtorz cykl
+5. Dopiero po pomyslnym tescie - prod build i upload
