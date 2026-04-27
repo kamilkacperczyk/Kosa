@@ -10,7 +10,8 @@ from PySide6.QtWidgets import (
     QLineEdit, QPushButton, QFrame, QSpacerItem, QSizePolicy, QCheckBox,
     QDialog, QTextBrowser,
 )
-from PySide6.QtCore import Signal, Qt, QThread
+from PySide6.QtCore import Signal, Qt, QThread, QTimer
+from PySide6.QtGui import QPainter, QPen, QColor
 
 from gui.db import authenticate_user, register_user, init_db
 
@@ -106,6 +107,52 @@ O istotnych zmianach uzytkownicy zostana poinformowani.</p>
 """
 
 
+class Spinner(QWidget):
+    """Krecace sie kolko (loading indicator) - ladowane przez QPainter."""
+
+    def __init__(self, parent=None, size: int = 22, color: str = "#1b998b"):
+        super().__init__(parent)
+        self._size = size
+        self._color = QColor(color)
+        self._angle = 0
+        self.setFixedSize(size, size)
+        self._timer = QTimer(self)
+        self._timer.setInterval(40)  # ~25 FPS
+        self._timer.timeout.connect(self._tick)
+        self.setVisible(False)
+
+    def start(self):
+        self.setVisible(True)
+        self._timer.start()
+
+    def stop(self):
+        self._timer.stop()
+        self.setVisible(False)
+
+    def _tick(self):
+        self._angle = (self._angle + 12) % 360
+        self.update()
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        rect = self.rect().adjusted(2, 2, -2, -2)
+
+        # Tlo - delikatny pierscien
+        bg_pen = QPen(QColor(self._color.red(), self._color.green(), self._color.blue(), 50))
+        bg_pen.setWidth(3)
+        p.setPen(bg_pen)
+        p.drawArc(rect, 0, 360 * 16)
+
+        # Wirujacy luk - 90 stopni
+        pen = QPen(self._color)
+        pen.setWidth(3)
+        pen.setCapStyle(Qt.RoundCap)
+        p.setPen(pen)
+        # Qt mierzy katy w 1/16 stopnia, kierunek przeciwny do zegara
+        p.drawArc(rect, -self._angle * 16, -90 * 16)
+
+
 class _ServerCheckThread(QThread):
     """Sprawdza serwer w tle (cold start Render moze trwac do 60s)."""
     result = Signal(bool, str)
@@ -116,6 +163,32 @@ class _ServerCheckThread(QThread):
             self.result.emit(True, "")
         except RuntimeError as e:
             self.result.emit(False, str(e))
+
+
+class _AuthThread(QThread):
+    """Wykonuje logowanie/rejestracje w tle - nie blokuje GUI podczas cold start Render."""
+    # Emituje krotke (action, ok, msg, user_id, subscription)
+    # action: "login" | "register"
+    result = Signal(str, bool, str, object, object)
+
+    def __init__(self, action: str, **kwargs):
+        super().__init__()
+        self._action = action
+        self._kwargs = kwargs
+
+    def run(self):
+        if self._action == "login":
+            ok, msg, user_id, subscription = authenticate_user(
+                self._kwargs["username"], self._kwargs["password"]
+            )
+            self.result.emit("login", ok, msg, user_id, subscription)
+        else:
+            ok, msg = register_user(
+                self._kwargs["username"],
+                self._kwargs["email"],
+                self._kwargs["password"],
+            )
+            self.result.emit("register", ok, msg, None, None)
 
 
 class TermsDialog(QDialog):
@@ -240,6 +313,8 @@ class LoginScreen(QWidget):
         self._is_register_mode = False
         self._server_ready = False
         self._terms_accepted = False
+        self._auth_thread = None
+        self._auth_in_progress = False
         self._setup_ui()
         self._check_server()
 
@@ -325,12 +400,18 @@ class LoginScreen(QWidget):
         self._terms_button.clicked.connect(self._open_terms_dialog)
         form_layout.addWidget(self._terms_button)
 
-        # Komunikat bledu / sukcesu
+        # Komunikat bledu / sukcesu + spinner (wycentrowane razem)
+        message_row = QHBoxLayout()
+        message_row.setSpacing(8)
+        message_row.setAlignment(Qt.AlignCenter)
+        self._spinner = Spinner(size=20)
+        message_row.addWidget(self._spinner)
         self._message_label = QLabel("")
         self._message_label.setObjectName("errorLabel")
         self._message_label.setAlignment(Qt.AlignCenter)
         self._message_label.setWordWrap(True)
-        form_layout.addWidget(self._message_label)
+        message_row.addWidget(self._message_label)
+        form_layout.addLayout(message_row)
 
         # Przycisk akcji (Zaloguj / Zarejestruj)
         form_layout.addSpacing(6)
@@ -459,6 +540,8 @@ class LoginScreen(QWidget):
 
     def _on_action(self):
         """Obsluguje klikniecie przycisku Zaloguj/Zarejestruj."""
+        if self._auth_in_progress:
+            return  # ignoruj klikniecia w trakcie requestu
         if not self._server_ready:
             self._show_error("Brak polaczenia z serwerem. Poczekaj lub sprobuj ponownie.")
             return
@@ -484,18 +567,43 @@ class LoginScreen(QWidget):
                 self._open_terms_dialog()
                 return
 
-            ok, msg = register_user(username, email, password)
+            self._start_auth("register", username=username, email=email, password=password)
+        else:
+            self._start_auth("login", username=username, password=password)
+
+    def _start_auth(self, action: str, **kwargs):
+        """Spawnuje wątek auth (login/register) - nie blokuje GUI."""
+        self._auth_in_progress = True
+        self._action_button.setEnabled(False)
+        base = "Logowanie" if action == "login" else "Rejestracja"
+        self._action_button.setText(base + "...")
+        self._show_info(base + "...")
+        self._spinner.start()
+
+        self._auth_thread = _AuthThread(action, **kwargs)
+        self._auth_thread.result.connect(self._on_auth_done)
+        self._auth_thread.start()
+
+    def _on_auth_done(self, action: str, ok: bool, msg: str, user_id, subscription):
+        """Callback po zakonczeniu wątku auth."""
+        self._spinner.stop()
+        self._auth_in_progress = False
+        self._action_button.setEnabled(True)
+        self._action_button.setText("Zarejestruj sie" if self._is_register_mode else "Zaloguj sie")
+
+        if action == "login":
             if ok:
-                self._show_success(msg + " Mozesz sie zalogowac.")
-                self._toggle_mode()  # wroc do logowania
-                self._username_input.setText(username)
-                self._password_input.clear()
+                username = self._username_input.text().strip()
+                self.login_success.emit(username, user_id, subscription)
             else:
                 self._show_error(msg)
-        else:
-            ok, msg, user_id, subscription = authenticate_user(username, password)
+        else:  # register
             if ok:
-                self.login_success.emit(username, user_id, subscription)
+                username = self._username_input.text().strip()
+                self._show_success(msg + " Mozesz sie zalogowac.")
+                self._toggle_mode()
+                self._username_input.setText(username)
+                self._password_input.clear()
             else:
                 self._show_error(msg)
 
