@@ -45,7 +45,7 @@ COMMENT ON COLUMN public.subscription_plans.currency IS 'Waluta (domyslnie PLN)'
 COMMENT ON COLUMN public.subscription_plans.billing_period IS 'Okres rozliczeniowy (np. monthly, yearly)';
 COMMENT ON COLUMN public.subscription_plans.features IS 'Lista funkcji planu (JSON)';
 COMMENT ON COLUMN public.subscription_plans.trial_days IS 'Liczba dni darmowego trialu';
-COMMENT ON COLUMN public.subscription_plans.is_active IS 'Czy plan jest aktywny i dostepny do zakupu';
+COMMENT ON COLUMN public.subscription_plans.is_active IS 'Czy plan jest aktywny i widoczny dla uzytkownikow';
 COMMENT ON COLUMN public.subscription_plans.sort_order IS 'Kolejnosc wyswietlania';
 COMMENT ON COLUMN public.subscription_plans.created_at IS 'Data utworzenia planu';
 COMMENT ON COLUMN public.subscription_plans.updated_at IS 'Data ostatniej modyfikacji (auto przez trigger)';

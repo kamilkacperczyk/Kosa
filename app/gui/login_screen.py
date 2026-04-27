@@ -37,10 +37,10 @@ sieci neuronowych (CNN) do analizy obrazu w czasie rzeczywistym.</p>
 </ul>
 
 <h3 style="color: #1b998b; margin-top: 20px;">3. Plany i subskrypcje</h3>
+<p>Wszystkie plany w BeSafeFish sa bezplatne. Roznia sie wylacznie limitami i sposobem przyznawania.</p>
 <ul>
-<li>Darmowy plan: 50 rund dziennie, bez oplat, bez limitu czasowego.</li>
-<li>Plan Premium: bez limitu rund, platny miesiecznie.</li>
-<li>Po wygasnieciu planu Premium konto automatycznie wraca do planu darmowego.</li>
+<li>Plan Probny: limit 50 rund dziennie, bez limitu czasowego, przyznawany automatycznie przy rejestracji.</li>
+<li>Plan Darmowy: pelny dostep bez limitu rund i sesji, przyznawany recznie po kontakcie z administratorem na Discordzie.</li>
 </ul>
 
 <h3 style="color: #1b998b; margin-top: 20px;">4. Charakter uslugi i odpowiedzialnosc</h3>

@@ -340,12 +340,16 @@ class SubscriptionTab(QWidget):
         price = plan.get("price", "0.00")
         currency = plan.get("currency", "PLN")
 
+        # Aktualnie wszystkie plany sa bezplatne (Probny + Darmowy).
+        # Galaz else przygotowana pod przyszle plany platne - do odkomentowania razem z przyciskiem "Kup ..." nizej.
         if float(price) == 0:
             price_text = "Za darmo"
             price_style = "color: #1b998b; font-size: 20px; font-weight: bold;"
         else:
-            price_text = f"{price} {currency}/mies."
-            price_style = "color: #f4a261; font-size: 20px; font-weight: bold;"
+            # price_text = f"{price} {currency}/mies."
+            # price_style = "color: #f4a261; font-size: 20px; font-weight: bold;"
+            price_text = "Za darmo"
+            price_style = "color: #1b998b; font-size: 20px; font-weight: bold;"
 
         price_label = QLabel(price_text)
         price_label.setStyleSheet(price_style)
@@ -385,15 +389,16 @@ class SubscriptionTab(QWidget):
                 "padding: 6px 16px; border-radius: 6px; border: none; }"
                 "QPushButton:disabled { background-color: #16413e; color: #1b998b; }"
             )
-        elif float(price) > 0:
-            btn = QPushButton("Kup Premium")
-            btn.setEnabled(False)
-            btn.setToolTip("Wkrotce dostepne")
-            btn.setStyleSheet(
-                "QPushButton { background-color: #f4a261; color: #1a1a2e; font-size: 11px; "
-                "font-weight: bold; padding: 6px 16px; border-radius: 6px; border: none; }"
-                "QPushButton:disabled { background-color: #3a2a1e; color: #665533; }"
-            )
+        # Galaz pod przyszle plany platne - obecnie wszystkie plany sa bezplatne, wiec to dead code.
+        # elif float(price) > 0:
+        #     btn = QPushButton("Kup plan")
+        #     btn.setEnabled(False)
+        #     btn.setToolTip("Wkrotce dostepne")
+        #     btn.setStyleSheet(
+        #         "QPushButton { background-color: #f4a261; color: #1a1a2e; font-size: 11px; "
+        #         "font-weight: bold; padding: 6px 16px; border-radius: 6px; border: none; }"
+        #         "QPushButton:disabled { background-color: #3a2a1e; color: #665533; }"
+        #     )
         else:
             btn = None
 

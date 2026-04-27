@@ -23,7 +23,7 @@ audit_log ← triggery z: users, user_subscriptions, payments
 | Tabela | Opis | Triggery |
 |--------|------|----------|
 | users | Uzytkownicy systemu | set_updated_at, audit_users |
-| subscription_plans | Plany subskrypcyjne (Darmowy, Premium) | set_updated_at |
+| subscription_plans | Plany subskrypcyjne (aktualnie aktywne: Probny, Darmowy. Premium - dead, schemat pod przyszle platne plany) | set_updated_at |
 | user_subscriptions | Subskrypcje uzytkownikow | set_updated_at, audit_subscriptions |
 | payments | Historia platnosci | set_updated_at, audit_payments |
 | daily_usage | Dzienne zuzycie rund per user | brak |
