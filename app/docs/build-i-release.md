@@ -245,10 +245,55 @@ Bot ładuje moduły przez `sys.path.insert(versions_dir, ...)` w runtime. PyInst
 
 ---
 
+## Klasy zmian i ryzyko pushu na main
+
+**Push != deploy** - ale dla niektórych zmian push **JEST** deployem na produkcję (Render auto-deployuje przy zmianie w `app/website/`). Dlatego "git push przed buildem" to nieprecyzyjna instrukcja.
+
+| Klasa zmiany | Co dotyka | Push = deploy? | Co zrobić przed pushem |
+|--------------|-----------|----------------|------------------------|
+| **1: GUI / .exe** | `app/gui/`, `app/besafefish.py`, `app/BeSafeFish.spec`, `versions/` | NIE - kod żyje tylko w .exe którego user pobierze później | Push bez problemu, test runtime przed releasem |
+| **2: Server / website** | `app/website/` (server.py, index.html, css, js) | **TAK** - Render wykrywa zmianę i deployuje w 2-5 min | **Lokalny test Flaska** (`py app/website/server.py` + curl) ALBO osobny branch + PR |
+| **3: SQL / migracje** | `app/SQL/migrations/`, `app/SQL/tables/` | NIE bezpośrednio (skrypt wykonujesz ręcznie w Supabase) | Migracja na bazie + curl test endpointu PRZED commitem aplikacji |
+| **4: Docs / config** | `app/docs/`, `CLAUDE.md`, `.gitignore`, `requirements.txt` | NIE | Push bez problemu |
+
+**Zasada uczciwa wobec siebie:** dziś naruszyłem klasę 2 - commit `82ab748` (fail-open audit w server.py) wpadł na main bez lokalnego testu Flaska. Wyszło OK bo zmiana była mała, ale **ryzyko było realne** - bug w 30 liniach Pythona zatrzymałby logowanie wszystkim userom na ~5 minut do rollbacku.
+
+### Workflow dla klasy 2 (server) - bezpieczny
+
+```bash
+# 1. Branch
+git checkout -b fix/<opis>
+
+# 2. Lokalny test Flaska (przed pushem)
+py app/website/server.py  # nasłuchuje na :5000
+# w drugim terminalu:
+curl -X POST localhost:5000/api/login -H "Content-Type: application/json" -d '{"username":"test","password":"test"}'
+# sprawdz response - czy nie HTTP 500, czy logika dziala
+
+# 3. Commit + push na branch (nie main!)
+git push -u origin fix/<opis>
+
+# 4. Merge do main
+git checkout main && git merge fix/<opis> && git push
+
+# 5. Render auto-deployuje (poczekaj 2-5 min)
+
+# 6. Weryfikacja na produkcji
+curl -X POST https://kosa-h283.onrender.com/api/login -H "Content-Type: application/json" -d '...'
+```
+
+Dla **trywialnych zmian klasy 2** (literówka w stringu, drobny refactor bez zmiany logiki) - można pominąć branch i pushować od razu na main, ale **lokalny test Flaska zostaje obowiązkowy**.
+
+---
+
 ## Checklist release v1.X.Y (do skopiowania)
 
 ```
-[ ] git push wszystkich zmian na main przed buildem (Render auto-deployuje serwer)
+[ ] Sklasyfikuj wszystkie zmiany do wypuszczenia (klasa 1/2/3/4 - tabela wyzej)
+[ ] Klasa 2 (server) - lokalny test Flaska + curl PRZED pushem na main
+[ ] Klasa 3 (SQL) - migracja na bazie + curl weryfikacyjny PRZED commitem aplikacji
+[ ] git push wszystkich zmian na main (Render auto-deployuje server jesli klasa 2)
+[ ] Klasa 2 - weryfikacja na produkcji (curl https://kosa-h283.onrender.com/api/...)
 [ ] Bump wersji w app/gui/dashboard.py (footer) i app/website/index.html (karta release)
 [ ] py -m PyInstaller app/BeSafeFish.spec --clean -y
 [ ] du -sh dist/BeSafeFish/ - sprawdzic czy ~290 MB

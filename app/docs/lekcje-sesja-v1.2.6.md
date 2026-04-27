@@ -348,6 +348,40 @@ Build debug version (`console=True`, `uac_admin=False`) → odpal `.exe` →
 zaloguj → klik **Start** → bot ma startować bez crash. Bez tego testu nie
 wrzucaj na release.
 
+### L-D5. Push na main != bezpieczna operacja - klasyfikuj zmianę przed pushem
+
+W tej sesji push commitów na main szedł rutynowo, ale dla niektórych zmian
+**push JEST deployem na produkcję**. Render auto-deployuje serwer przy
+każdej zmianie w `app/website/`. Konkretnie: commit `82ab748` (fail-open
+audit w `server.py`) wpadł na main bez lokalnego testu Flaska. Wyszło OK
+bo zmiana była mała, ale **ryzyko było realne** - bug w 30 liniach Pythona
+zatrzymałby logowanie wszystkim userom na ~5 minut do rollbacku.
+
+**Klasy zmian:**
+
+| Klasa | Co dotyka | Push = deploy? | Co PRZED pushem |
+|-------|-----------|----------------|-----------------|
+| 1 | GUI / .exe (`app/gui/`, `besafefish.py`, `BeSafeFish.spec`, `versions/`) | NIE | nic, test runtime przed releasem |
+| 2 | Server / website (`app/website/`) | **TAK** (Render) | **lokalny test Flaska + curl** ALBO branch + PR |
+| 3 | SQL / migracje (`app/SQL/`) | NIE bezpośrednio | migracja na bazie + curl test PRZED commitem |
+| 4 | Docs / config (`app/docs/`, `CLAUDE.md`, `.gitignore`) | NIE | nic |
+
+**Workflow dla klasy 2 (zmiana w server.py / Flask):**
+
+```bash
+# Lokalny test PRZED pushem
+py app/website/server.py  # nasłuchuje na :5000
+# w drugim terminalu:
+curl -X POST localhost:5000/api/login -H "Content-Type: application/json" -d '{...}'
+# sprawdz response - czy nie HTTP 500, czy logika dziala
+
+# Dopiero potem
+git push
+```
+
+Pełen workflow z branchem + PR dla nietrywialnych zmian: patrz
+[build-i-release.md sekcja "Klasy zmian i ryzyko pushu"](build-i-release.md).
+
 ---
 
 ## Meta-lekcja: dlaczego nie zauważyłem
