@@ -6,17 +6,20 @@
 # Build (z rootu repo): py -m PyInstaller app/BeSafeFish.spec --clean -y
 # Output: dist/BeSafeFish/BeSafeFish.exe
 #
-# Uwaga: sciezki w datas/pathex sa wzgledem lokalizacji pliku .spec (czyli app/).
-# Dlatego pliki w app/ podajemy bez prefixu "app/", a pliki w versions/ przez "..\\".
+# UWAGA: PyInstaller 6.x ma niespojne dziedziczenie sciezek:
+# - script (Analysis pierwszy argument), datas, icon = WZGLEDEM .spec (czyli app/)
+# - pathex = WZGLEDEM CWD (czyli root repo)
+# Dlatego ZAWSZE buildujemy z rootu repo: 'py -m PyInstaller app/BeSafeFish.spec'.
 
 a = Analysis(
-    ['besafefish.py'],
+    ['besafefish.py'],  # wzgledem .spec (app/)
     pathex=[
-        '.',
-        '..\\versions\\tryb1_rybka_klik\\post_cnn',
+        'app',  # wzgledem cwd (root repo)
+        'versions\\tryb1_rybka_klik\\post_cnn',
     ],
     binaries=[],
     datas=[
+        # wzgledem .spec (app/)
         ('gui\\fish.ico', 'gui'),
         ('gui\\assets', 'gui\\assets'),
         ('..\\versions\\tryb1_rybka_klik\\post_cnn\\cnn\\models\\fish_patch_cnn.onnx', 'cnn\\models'),
@@ -24,6 +27,17 @@ a = Analysis(
     ],
     hiddenimports=[
         'PySide6.QtSvg',
+        # Bot worker laduje moduly bota dynamicznie przez sys.path.insert (besafefish.py:27).
+        # PyInstaller nie wykryje tych importow -> trzeba podac jawnie.
+        'cv2',
+        'numpy',
+        'mss',
+        'pyautogui',
+        'pydirectinput',
+        'pygetwindow',
+        'PIL',
+        'onnxruntime',  # importowany lazy w src/fishing_modes/fish_click.py
+        'onnxruntime.capi',
     ],
     hookspath=[],
     hooksconfig={},
@@ -50,7 +64,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['gui\\fish.ico'],
+    icon=['gui\\fish.ico'],  # wzgledem .spec (app/)
     uac_admin=True,
 )
 
