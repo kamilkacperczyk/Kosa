@@ -12,6 +12,7 @@ Przed wprowadzaniem zmian przeczytaj odpowiedni plik:
 | `app/docs/regulamin-i-rodo.md` | Regulamin, RODO, checkbox akceptacji, retencja danych | ...dodajesz rejestracje, zbierasz dane osobowe, IP |
 | `app/docs/historia-wersji.md` | Ewolucja bota (pre_cnn → post_cnn), co zmienilo sie i dlaczego | ...chcesz zrozumiec rozniace miedzy wariantami bota |
 | `app/docs/architektura-i-lekcje.md` | Lekcje z refaktorow (modularnosc, Strategy pattern, hardcoded paths) | ...projektujesz nowa funkcjonalnosc, decydujesz o strukturze |
+| `app/docs/build-i-release.md` | Build .exe, PyInstaller .spec, weryfikacja paczki, checklist release | ...zmieniasz .spec, robisz nowy release, paczka v1.X.Y nie dziala |
 | `versions/tryb1_rybka_klik/README.md` | Opis trybu rybka-klik i jego wariantow | ...pracujesz nad trybem 1 (lowienie rybki) |
 | `versions/tryb1_rybka_klik/post_cnn/README.md` | Szczegoly wariantu post_cnn (pipeline detekcji, PatchCNN) | ...modyfikujesz kod bota z CNN |
 | `versions/tryb1_rybka_klik/post_cnn/cnn/ARCHITEKTURA_CNN.md` | Model PatchCNN, trening, inference, ONNX | ...pracujesz nad CNN/modelem |
@@ -73,3 +74,6 @@ Przed wprowadzaniem zmian przeczytaj odpowiedni plik:
 19. **Deploy triggerowany zmianami w rootDir** — commit poza rootDir nie odpali redeployu na Render.
 20. **Retry z backoff na start** — przy cold start serwera, GUI robi 3 proby z rosnacym odstepem.
 21. **Rollback transakcji przy bledzie** — teardown_request z rollback. Nie zostawiaj otwartych transakcji.
+22. **Build success != paczka dziala** — PyInstaller exit 0 mimo brakujacych modulow (ciche warningi w `warn-*.txt`). ZAWSZE odpal .exe lokalnie i przejdz pelen flow przed releasem.
+23. **Spadek rozmiaru paczki to ALARM** — `v1.X.Y` ~290MB rozpakowane / ~118MB .zip. Spadek o >30% bez wyjasnienia = cos zniknelo. Sprawdz co.
+24. **PyInstaller .spec - niespojne sciezki** — script/datas/icon wzgledem .spec, pathex wzgledem cwd. Build ZAWSZE z roota repo. Po zmianie .spec - pelen cykl testowy (debug build + odpal .exe + start bota). Patrz `app/docs/build-i-release.md`.

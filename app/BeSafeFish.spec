@@ -10,6 +10,9 @@
 # - script (Analysis pierwszy argument), datas, icon = WZGLEDEM .spec (czyli app/)
 # - pathex = WZGLEDEM CWD (czyli root repo)
 # Dlatego ZAWSZE buildujemy z rootu repo: 'py -m PyInstaller app/BeSafeFish.spec'.
+#
+# PRZED EDYCJA TEGO PLIKU lub kazdym releasem przeczytaj app/docs/build-i-release.md
+# (lekcje z incydentu v1.2.6 + obowiazkowy checklist weryfikacji paczki).
 
 a = Analysis(
     ['besafefish.py'],  # wzgledem .spec (app/)
