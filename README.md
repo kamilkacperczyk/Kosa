@@ -4,6 +4,11 @@ Asystent computer vision automatyzujacy czynnosci w grze - aplikacja desktopowa 
 
 - Strona WWW: https://kosa-h283.onrender.com
 - Pobranie .exe: [GitHub Releases](https://github.com/kamilkacperczyk/BeSafeFish/releases/latest)
+- Monitoring: [Grafana Cloud](https://kacperczyk95.grafana.net/) (prywatny - patrz sekcja Monitoring)
+  dashboard PostgreSQL z aktywnoscia uzytkownikow, ze względów bezpieczeństwa -niedostepny publicznie,
+  Przykłdowy podglad co przedstawia ponizej:
+
+<a href="app/docs/screenshots/grafana-besafefish-psql-monitoring-screen.png"><img src="app/docs/screenshots/grafana-besafefish-psql-monitoring-screen.png" alt="Grafana dashboard preview" width="500"></a>
 
 ## Jak dziala
 
@@ -69,28 +74,7 @@ Szczegoly: `app/docs/struktura-bazy.md`
 
 ## Monitoring
 
-Dashboard Grafana Cloud podpiety do Supabase PostgreSQL przez dedykowanego read-only usera (`grafana_ro` z `BYPASSRLS` + `GRANT SELECT`).
-
-**Adres:** https://kacperczyk95.grafana.net/
-
-**Dostep:** dashboard jest **prywatny** - tylko admin (Ty) widzi panele po zalogowaniu. Z wzgledow bezpieczenstwa i RODO **nie udostepniam monitoringu publicznie**, poniewaz panele zawieraja dane osobowe uzytkownikow (loginy, czas logowan, przyczyny nieudanych prob) ktorych zgoda na publikacje nie obejmuje.
-
-**Co jest monitorowane:**
-- Logowania w czasie (udane vs nieudane jako time series)
-- Aktywnosc uzytkownikow (count logowan per user)
-- Przyczyny nieudanych logowan (audit z `login_history.failure_reason`)
-- Plany subskrypcji w chwili logowania (LATERAL JOIN z `user_subscriptions`)
-
-**Stack:**
-- Grafana Cloud Free (10k metryk, 14 dni retencji, bez 2FA built-in - logowanie OAuth)
-- PostgreSQL data source przez Supavisor session pooler (port 5432, IPv4)
-- Read-only user (`grafana_ro`) na poziomie bazy + `BYPASSRLS` (omijanie domyslnych polityk Supabase)
-
-**Bezpieczenstwo:** tylko `SELECT` na schemacie public, brak `INSERT/UPDATE/DELETE`, brak dostepu do `auth.*` schemata (Supabase internal).
-
-Ponizej zestaw przykladowych panelow (zrzut ekranu z dashboardu admin):
-
-![Dashboard Grafana - BeSafeFish monitoring](app/docs/screenshots/grafana-besafefish-psql-monitoring-screen.png)
+Aplikacja ma podpiety dashboard w Grafanie - monitoruje aktywnosc bazy danych (logowania, plany subskrypcji, audit nieudanych prob). W przyszlosci dodamy tez metryki strony i ruchu sieciowego API.
 
 ## Dokumentacja
 
