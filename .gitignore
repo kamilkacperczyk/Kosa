@@ -40,6 +40,7 @@ id_rsa*
 *.png
 !app/website/img/*.png
 !app/gui/assets/*.png
+!app/docs/screenshots/*.png
 *.log
 *.tmp
 
