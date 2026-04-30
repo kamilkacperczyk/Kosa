@@ -4,8 +4,8 @@
 -- SECURITY DEFINER: tak (potrzebne do UPDATE z hashowaniem na Supabase)
 --
 -- Uzycie:
---   SELECT change_password('adm_kkacperczyk', 'testowy', 'nowehaslo123');  -- admin zmienia komus
---   SELECT change_password('testowy', 'testowy', 'mojenowehaslo');         -- user zmienia sobie
+--   SELECT change_password('adm_login', 'testowy', 'nowehaslo123');  -- admin zmienia komus
+--   SELECT change_password('testowy', 'testowy', 'mojenowehaslo');    -- user zmienia sobie
 
 CREATE OR REPLACE FUNCTION public.change_password(
     p_admin_login character varying,   -- Login osoby wykonujacej zmiane

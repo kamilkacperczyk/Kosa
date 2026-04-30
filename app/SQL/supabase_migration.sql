@@ -765,9 +765,10 @@ CREATE POLICY admin_full_access ON daily_usage FOR ALL USING (current_user LIKE 
 
 -- Admin (created_by = NULL bo pierwszy user)
 -- UWAGA: create_user_short z rola 'admin' automatycznie tworzy role PG + GRANT
--- Po uruchomieniu zmien haslo: SELECT change_password('adm_kkacperczyk', 'adm_kkacperczyk', 'PRAWDZIWE_HASLO');
--- Zmien tez haslo roli PG: ALTER ROLE adm_kkacperczyk PASSWORD 'PRAWDZIWE_HASLO';
-SELECT create_user_short('adm_kkacperczyk', 'kkacperczyk@mail.com', 'ZMIEN_TO_HASLO', 'admin');
+-- Po uruchomieniu zmien haslo: SELECT change_password('adm_LOGIN', 'adm_LOGIN', 'PRAWDZIWE_HASLO');
+-- Zmien tez haslo roli PG: ALTER ROLE adm_LOGIN PASSWORD 'PRAWDZIWE_HASLO';
+-- UWAGA: zmien adm_LOGIN na swoj wybrany login + email + haslo przed odpaleniem
+SELECT create_user_short('adm_LOGIN', 'twoj@mail.com', 'ZMIEN_TO_HASLO', 'admin');
 
 -- Plany subskrypcyjne
 INSERT INTO subscription_plans (name, slug, description, price, billing_period, features, trial_days, sort_order)
