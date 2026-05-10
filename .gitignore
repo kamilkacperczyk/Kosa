@@ -28,6 +28,7 @@ id_rsa*
 # === IDE / EDYTOR ===
 .vscode/settings.json
 .idea/
+.claude/
 *.swp
 *.swo
 *~

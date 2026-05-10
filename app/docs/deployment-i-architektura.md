@@ -41,6 +41,30 @@
 - `preload_app=True` — wspoldzielony kod, mniej RAM
 - `timeout=120` — zapas na cold start
 
+### Rate limit (Flask-Limiter)
+
+Limiter inicjalizowany w `server.py:64` z `Limiter(app=app, key_func=_real_ip, storage_uri="memory://")`.
+**Wazne**: Limiter musi byc utworzony **przed** deklaracja `@app.before_request def _before_request()`,
+zeby jego rate limit check szedl pierwszy (chroni connection pool).
+
+Dekoratory na endpointach:
+| Endpoint | Limit |
+|----------|-------|
+| `/api/register` | 5/h, 20/dzien per IP |
+| `/api/login` | 10/min, 100/h per IP |
+| pozostale | brak (TODO Tier 1.5) |
+
+`_real_ip()` (server.py:51) bierze IP z `X-Forwarded-For` (Render za proxy),
+fallback na `get_remote_address()`. Pierwszy element XFF to oryginalny klient.
+
+Custom error handler 429 (server.py:72) zwraca JSON `{"ok": false, "msg": "Zbyt wiele prob..."}`
+zamiast generycznego HTML "Too Many Requests".
+
+**Storage in-memory:**
+- Reset licznikow przy restarcie workera (Render free tier restartuje co kilka godzin) - akceptowalne dla MVP
+- Niespojnosc miedzy workerami jesli sa dwa (jeden moze dac przepustke ktora drugi by zablokowal)
+- Dla produkcji multi-worker: przesiadka na Redis (`storage_uri="redis://..."`)
+
 ### Endpointy API
 
 | Endpoint | Metoda | Opis | Kto uzywa |

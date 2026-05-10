@@ -62,3 +62,41 @@ Jesli przypadkowo scommitowales wrazliwe dane:
 2. Usun dane z kodu i scommituj poprawke
 3. Jesli dane trafily do historii Git - uzyj `git filter-branch` lub `BFG Repo Cleaner`
 4. Sam commit z usunieciem NIE wystarczy - Git pamieta cala historie
+
+## Ochrona endpointow API
+
+### Rate limit (Flask-Limiter)
+
+Endpointy chronione dekoratorem `@limiter.limit(...)`:
+- `/api/register`: 5/h, 20/dzien per IP
+- `/api/login`: 10/min, 100/h per IP
+
+Endpointy **bez** rate limitu (do dodania w Tier 1.5):
+- `/api/health`, `/api/subscription/<id>`, `/api/payments/<id>`,
+  `/api/usage/<id>`, `/api/round/use`, `/api/plans`
+
+Konfiguracja: `Limiter(key_func=_real_ip, storage_uri="memory://")` -
+identyfikacja klienta z `X-Forwarded-For` (Render za proxy), in-memory
+storage dla single-worker.
+
+### Honeypot na rejestracji
+
+Formularz rejestracji ma ukryte pole `<input name="website">` (CSS off-screen).
+Bot wypelnia, czlowiek nie. Backend cicho udaje sukces (`ok=true`) bez
+tworzenia usera w bazie + log `[SECURITY]` do stderr (Render logs).
+
+### Walidacja inputu
+
+- email: regex `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$` + max 254 znaki (RFC 5321)
+- username: min 3 znaki
+- password: 8-64 znaki
+
+Walidacja zarowno na kliencie (UX, instant feedback) jak i serwerze (security).
+
+### Znane dziury (do naprawy w Tier 1.5)
+
+- `/api/round/use` przyjmuje `user_id` z body bez weryfikacji autoryzacji.
+  Atakujacy moze inkrementowac dzienne rundy dowolnemu userowi (sabotaz limitu).
+  Wymaga sesji/JWT.
+
+Pelne lekcje i analiza: [app/docs/lekcje-anti-spam-tier1.md](app/docs/lekcje-anti-spam-tier1.md).

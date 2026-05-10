@@ -9,8 +9,9 @@ funkcjonalnosci i wpisaniu lekcji do `app/docs/`.
 
 | Plik | Status | Co zawiera |
 |------|--------|------------|
-| [plan-anti-spam-rejestracji.md](plan-anti-spam-rejestracji.md) | **Tier 1 - do realizacji** | Honeypot field + Flask-Limiter + walidacja email regex |
-| [plan-anti-spam-tier2.md](plan-anti-spam-tier2.md) | Tier 2 - po Tier 1 | Email weryfikacja (Resend) + wlasna domena + Cloudflare WAF |
+| [plan-anti-spam-rejestracji.md](plan-anti-spam-rejestracji.md) | **Tier 1 - DONE 2026-05-10** | Honeypot field + Flask-Limiter + walidacja email regex. Lekcje: [app/docs/lekcje-anti-spam-tier1.md](../../app/docs/lekcje-anti-spam-tier1.md). Commit: `f1f9f07`. |
+| (nowy) | **Tier 1.5 - do realizacji** | Auth na `/api/round/use` (krytyczna dziura: sabotaz limitu rund), rate limit na pozostalych 6 endpointach |
+| [plan-anti-spam-tier2.md](plan-anti-spam-tier2.md) | Tier 2 - po Tier 1.5 | Email weryfikacja (Resend) + wlasna domena + Cloudflare WAF |
 | [plan-anti-spam-tier3.md](plan-anti-spam-tier3.md) | Tier 3 - tylko jesli potrzebne | Cloudflare Turnstile (CAPTCHA) + blacklist disposable email |
 
 **Kolejnosc**: Tier 1 -> obserwacja 2-4 tyg -> Tier 2 jesli widac problem ->
