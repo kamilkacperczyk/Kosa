@@ -10,10 +10,13 @@ connection stringa do bazy - wystarczy pobrac i uruchomic .exe.
 """
 
 import json
+import re
 import urllib.request
 import urllib.error
 
 API_URL = "https://kosa-h283.onrender.com"
+
+EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 
 
 def _api_request(endpoint, data=None, timeout=60):
@@ -67,6 +70,10 @@ def register_user(username: str, email: str, password: str) -> tuple:
         return False, "Haslo moze miec maks. 64 znaki."
     if not email:
         return False, "Podaj adres email."
+    if len(email) > 254:
+        return False, "Adres email zbyt dlugi."
+    if not EMAIL_REGEX.match(email):
+        return False, "Nieprawidlowy format adresu email."
 
     result = _api_request("/api/register", {
         "username": username,

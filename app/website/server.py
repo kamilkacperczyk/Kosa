@@ -24,12 +24,15 @@ Migracja na inny hosting:
 """
 
 import os
+import re
 import sys
 
 import psycopg2
 import psycopg2.pool
 import psycopg2.extras
 from flask import Flask, request, jsonify, g
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
 
 # Lokalnie laduje .env, na Render zmienne sa w Environment
@@ -40,6 +43,40 @@ WEB_SYSTEM_USER_ID = int(os.getenv("WEB_SYSTEM_USER_ID", "7"))
 GUI_SYSTEM_USER_ID = int(os.getenv("GUI_SYSTEM_USER_ID", "5"))
 
 app = Flask(__name__, static_folder=".", static_url_path="")
+
+# Walidacja formatu email (regex - dla MVP wystarczy, nie sprawdza DNS MX)
+EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+
+
+def _real_ip():
+    """IP klienta - Render jest za proxy, wiec X-Forwarded-For zamiast remote_addr.
+
+    Pierwszy element XFF to oryginalny klient, kolejne to proxy w lancuchu.
+    Fallback na get_remote_address() gdy nagłowek brak (np. lokalny test).
+    """
+    xff = request.headers.get("X-Forwarded-For", "")
+    if xff:
+        return xff.split(",")[0].strip()
+    return get_remote_address()
+
+
+# Rate limit - in-memory wystarcza dla 1 worker gunicorn (Render free tier)
+limiter = Limiter(
+    app=app,
+    key_func=_real_ip,
+    default_limits=[],   # explicit per endpoint, nie globalnie
+    storage_uri="memory://",
+)
+
+
+@app.errorhandler(429)
+def _ratelimit_handler(e):
+    """Czytelny komunikat zamiast generycznego 429."""
+    return jsonify({
+        "ok": False,
+        "msg": "Zbyt wiele prob. Sprobuj ponownie za chwile.",
+    }), 429
+
 
 # Connection pool — leniwa inicjalizacja (bezpieczne z gunicorn --preload)
 _pool = None
@@ -116,10 +153,21 @@ def _log_login_attempt(conn, user_id, success: bool, ip_address, user_agent: str
 
 
 @app.route("/api/register", methods=["POST"])
+@limiter.limit("5 per hour; 20 per day")
 def register():
     data = request.get_json()
     if not data:
         return jsonify({"ok": False, "msg": "Brak danych."}), 400
+
+    # Honeypot - pole 'website' jest ukryte CSS-em, ludzie go nie widza,
+    # boty wypelniaja wszystkie pola formularza. Cicho udajemy sukces zeby
+    # bot nie probowal innej metody.
+    if data.get("website"):
+        print(
+            f"[SECURITY] Honeypot triggered from IP={_real_ip()}",
+            file=sys.stderr, flush=True,
+        )
+        return jsonify({"ok": True, "msg": "Konto utworzone! Mozesz pobrac aplikacje i sie zalogowac."})
 
     username = (data.get("username") or "").strip()
     email = (data.get("email") or "").strip()
@@ -129,6 +177,10 @@ def register():
         return jsonify({"ok": False, "msg": "Nazwa uzytkownika musi miec min. 3 znaki."})
     if not email:
         return jsonify({"ok": False, "msg": "Podaj adres email."})
+    if len(email) > 254:
+        return jsonify({"ok": False, "msg": "Adres email zbyt dlugi."})
+    if not EMAIL_REGEX.match(email):
+        return jsonify({"ok": False, "msg": "Nieprawidlowy format adresu email."})
     if len(password) < 8:
         return jsonify({"ok": False, "msg": "Haslo musi miec min. 8 znakow."})
     if len(password) > 64:
@@ -159,6 +211,7 @@ def register():
 
 
 @app.route("/api/login", methods=["POST"])
+@limiter.limit("10 per minute; 100 per hour")
 def login():
     """Endpoint logowania - uzywany przez aplikacje desktopowa (GUI)."""
     data = request.get_json()
@@ -171,8 +224,7 @@ def login():
     if not username or not password:
         return jsonify({"ok": False, "msg": "Wypelnij wszystkie pola."})
 
-    xff = request.headers.get("X-Forwarded-For", "")
-    ip_address = xff.split(",")[0].strip() if xff else request.remote_addr
+    ip_address = _real_ip()
     user_agent = request.headers.get("User-Agent", "")
 
     try:

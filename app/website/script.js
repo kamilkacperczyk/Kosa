@@ -33,6 +33,7 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
     var password = document.getElementById('reg-password').value;
     var confirm = document.getElementById('reg-confirm').value;
     var terms = document.getElementById('reg-terms').checked;
+    var honeypot = document.getElementById('reg-website').value;
     var msg = document.getElementById('formMessage');
 
     msg.textContent = '';
@@ -46,6 +47,19 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
 
     if (!email) {
         msg.textContent = 'Podaj adres email.';
+        msg.classList.add('error');
+        return;
+    }
+
+    var emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+        msg.textContent = 'Nieprawidlowy format adresu email.';
+        msg.classList.add('error');
+        return;
+    }
+
+    if (email.length > 254) {
+        msg.textContent = 'Adres email zbyt dlugi.';
         msg.classList.add('error');
         return;
     }
@@ -83,7 +97,7 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
     fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username, email: email, password: password })
+        body: JSON.stringify({ username: username, email: email, password: password, website: honeypot })
     })
     .then(function(res) { return res.json(); })
     .then(function(data) {
