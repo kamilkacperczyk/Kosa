@@ -18,16 +18,17 @@ echo "${GREEN}[pre-commit] Skanuje staged pliki pod katem wrazliwych danych...${
 
 # Wzorce do wykrycia
 PATTERNS=(
-    # Hasla i tokeny
-    'password\s*[:=]'
-    'passwd\s*[:=]'
-    'token\s*[:=]'
-    'api_key\s*[:=]'
-    'apikey\s*[:=]'
-    'secret\s*[:=]'
-    'auth_token'
-    'access_token'
-    'bearer\s'
+    # Hasla i tokeny - tylko gdy przypisanie do literala stringa (z cudzyslowem)
+    # Eliminuje false positives: password = self.input.text(), password = data.get(...)
+    'password\s*[:=]\s*["'\''][^"'\''$]{3,}'
+    'passwd\s*[:=]\s*["'\''][^"'\''$]{3,}'
+    'token\s*[:=]\s*["'\''][^"'\''$]{8,}'
+    'api_key\s*[:=]\s*["'\''][^"'\''$]{8,}'
+    'apikey\s*[:=]\s*["'\''][^"'\''$]{8,}'
+    'secret\s*[:=]\s*["'\''][^"'\''$]{8,}'
+    'auth_token\s*[:=]\s*["'\''][^"'\''$]{8,}'
+    'access_token\s*[:=]\s*["'\''][^"'\''$]{8,}'
+    'bearer\s+[a-zA-Z0-9._\-]{20,}'
     # Connection strings
     'mysql://'
     'postgres://'
