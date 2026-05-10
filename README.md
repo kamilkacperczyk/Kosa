@@ -6,7 +6,7 @@ Asystent computer vision automatyzujacy czynnosci w grze - aplikacja desktopowa 
 - Pobranie .exe: [GitHub Releases](https://github.com/kamilkacperczyk/BeSafeFish/releases/latest)
 - Monitoring: [Grafana Cloud](https://kacperczyk95.grafana.net/) (prywatny - patrz sekcja Monitoring)
   dashboard PostgreSQL z aktywnoscia uzytkownikow, ze względów bezpieczeństwa -niedostepny publicznie,
-  Przykłdowy podglad co przedstawia ponizej:
+  Przykladowy podglad co przedstawia ponizej:
 
 <a href="app/docs/screenshots/grafana-besafefish-psql-monitoring-screen.png"><img src="app/docs/screenshots/grafana-besafefish-psql-monitoring-screen.png" alt="Grafana dashboard preview" width="500"></a>
 
